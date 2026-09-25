@@ -22,10 +22,10 @@ class SafePathApiClient(private val baseUrl: String = DEFAULT_BASE_URL) {
          * - ONLINE_SERVER_URL: Set this to your live deployed cloud URL (e.g. Render / Railway).
          */
         const val LOCAL_EMULATOR_URL = "http://10.0.2.2:3000"
-        const val ONLINE_SERVER_URL = "https://safepath-server.onrender.com"
+        const val ONLINE_SERVER_URL = "https://safepath-live.onrender.com"
 
-        // Set this to ONLINE_SERVER_URL once you deploy to the cloud!
-        var DEFAULT_BASE_URL = LOCAL_EMULATOR_URL
+        // Active server endpoint: Pointing to live Render cloud server!
+        var DEFAULT_BASE_URL = ONLINE_SERVER_URL
     }
 
     private val client = OkHttpClient.Builder().build()
