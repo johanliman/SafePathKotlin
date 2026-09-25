@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>SafePath Mobile Map</title>
+  <link rel="stylesheet" href="./leaflet.css" />
+  <script src="./leaflet.js"></script>
+  <style>
+    html, body, #map {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+    }
+    .user-pin {
+      background: #3b82f6;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 13px;
+      font-weight: bold;
+    }
+    .user-pin.danger {
+      background: #ef4444;
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.9);
+    }
+    .fleet-pin {
+      background: #1e293b;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid #10b981;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 11px;
+    }
+    .fleet-pin.danger {
+      border-color: #ef4444;
+    }
+    .haven-pin {
+      background: rgba(16, 185, 129, 0.2);
+      border: 2px solid #10b981;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .pin-label {
+      position: absolute;
+      top: -24px;
+      left: -28px;
+      background: rgba(15, 23, 42, 0.9);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 6px;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    var map = L.map('map', {
+      center: [33.8823, -117.8851],
+      zoom: 16,
+      zoomControl: false
+    });
+
+    // Free OpenStreetMap Tile Layer - Zero API Keys Required
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    var userMarker = null;
+    var otherMarkers = {};
+    var hazardCircle = null;
+    var routePolyline = null;
+    var havenMarkers = {};
+
+    // Safe Havens
+    var safeHavens = [
+      { id: 'SZ1', name: 'North Quad Assembly (SZ1)', lat: 33.8842, lng: -117.8855 },
+      { id: 'SZ2', name: 'East Perimeter Gate (SZ2)', lat: 33.8825, lng: -117.8805 },
+      { id: 'SZ3', name: 'West Athletics Pavilion (SZ3)', lat: 33.8850, lng: -117.8895 },
+      { id: 'SZ4', name: 'South Gate Egress (SZ4)', lat: 33.8785, lng: -117.8850 }
+    ];
+
+    safeHavens.forEach(function(h) {
+      var icon = L.divIcon({
+        className: '',
+        html: '<div class="haven-pin">🛡️</div>',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+      var m = L.marker([h.lat, h.lng], { icon: icon }).addTo(map);
+      m.bindPopup('<strong>🛡️ Safe Haven: ' + h.name + '</strong><br/><span style="color:#10b981;">🟢 Safe Evacuation Point</span>');
+      havenMarkers[h.id] = m;
+    });
+
+    // Tap map to change location
+    map.on('click', function(e) {
+      if (window.AndroidApp && window.AndroidApp.onMapClicked) {
+        window.AndroidApp.onMapClicked(e.latlng.lat, e.latlng.lng);
+      }
+    });
+
+    function updateUser(name, lat, lng, inHazard) {
+      var pinClass = inHazard ? 'user-pin danger' : 'user-pin';
+      var statusIcon = inHazard ? '🚨' : '🟢';
+      var html = '<div style="position:relative;">' +
+                   '<div class="' + pinClass + '">📍</div>' +
+                   '<div class="pin-label">YOU: ' + name + ' ' + statusIcon + '</div>' +
+                 '</div>';
+
+      var icon = L.divIcon({
+        className: '',
+        html: html,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+
+      if (!userMarker) {
+        userMarker = L.marker([lat, lng], { icon: icon, zIndexOffset: 2000 }).addTo(map);
+      } else {
+        userMarker.setLatLng([lat, lng]);
+        userMarker.setIcon(icon);
+      }
+    }
+
+    function setOtherStudents(students) {
+      for (var em in otherMarkers) {
+        map.removeLayer(otherMarkers[em]);
+      }
+      otherMarkers = {};
+
+      students.forEach(function(s) {
+        var pinClass = s.inHazard ? 'fleet-pin danger' : 'fleet-pin';
+        var statusIcon = s.inHazard ? '🚨' : '';
+        var html = '<div style="position:relative;">' +
+                     '<div class="' + pinClass + '">👤</div>' +
+                     '<div class="pin-label">' + s.name.split(' ')[0] + ' ' + statusIcon + '</div>' +
+                   '</div>';
+
+        var icon = L.divIcon({
+          className: '',
+          html: html,
+          iconSize: [22, 22],
+          iconAnchor: [11, 11]
+        });
+
+        var m = L.marker([s.lat, s.lng], { icon: icon, zIndexOffset: 1000 }).addTo(map);
+        otherMarkers[s.email] = m;
+      });
+    }
+
+    function setHazard(lat, lng, radiusMeters, name) {
+      if (hazardCircle) {
+        map.removeLayer(hazardCircle);
+      }
+      hazardCircle = L.circle([lat, lng], {
+        radius: radiusMeters,
+        color: '#dc2626',
+        fillColor: '#ef4444',
+        fillOpacity: 0.35,
+        weight: 3
+      }).addTo(map);
+      hazardCircle.bindPopup('<strong>🚨 DANGER ZONE: ' + name + '</strong><br/>Radius: ' + radiusMeters + 'm');
+    }
+
+    function clearHazard() {
+      if (hazardCircle) {
+        map.removeLayer(hazardCircle);
+        hazardCircle = null;
+      }
+    }
+
+    function setSafeRoute(coords) {
+      if (routePolyline) {
+        map.removeLayer(routePolyline);
+      }
+      routePolyline = L.polyline(coords, {
+        color: '#10b981',
+        weight: 6,
+        opacity: 0.95,
+        dashArray: '8, 8',
+        lineCap: 'round'
+      }).addTo(map);
+    }
+
+    function clearSafeRoute() {
+      if (routePolyline) {
+        map.removeLayer(routePolyline);
+        routePolyline = null;
+      }
+    }
+
+    function centerMap(lat, lng, zoom) {
+      map.setView([lat, lng], zoom || 16);
+    }
+  </script>
+</body>
+</html>

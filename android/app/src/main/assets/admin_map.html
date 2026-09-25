@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>SafePath Mobile Admin Map</title>
+  <link rel="stylesheet" href="./leaflet.css" />
+  <script src="./leaflet.js"></script>
+  <style>
+    html, body, #map {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+    }
+    .epicenter-pin {
+      background: #dc2626;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 16px rgba(220, 38, 38, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 16px;
+      cursor: grab;
+    }
+    .epicenter-label {
+      position: absolute;
+      top: -26px;
+      left: -50px;
+      background: rgba(220, 38, 38, 0.95);
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 10px;
+      border: 1.5px solid #ffffff;
+      white-space: nowrap;
+      pointer-events: none;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .fleet-pin {
+      background: #1e293b;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid #10b981;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 12px;
+    }
+    .fleet-pin.danger {
+      border-color: #ef4444;
+      background: #7f1d1d;
+    }
+    .pin-label {
+      position: absolute;
+      top: -24px;
+      left: -28px;
+      background: rgba(15, 23, 42, 0.92);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 6px;
+      white-space: nowrap;
+      pointer-events: none;
+      border: 1px solid #334155;
+    }
+    .haven-pin {
+      background: rgba(16, 185, 129, 0.2);
+      border: 2px solid #10b981;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    var map = L.map('map', {
+      center: [33.8823, -117.8851],
+      zoom: 16,
+      zoomControl: false
+    });
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    var adminPinMarker = null;
+    var adminPreviewCircle = null;
+    var fleetMarkers = {};
+    var havenMarkers = {};
+
+    var safeHavens = [
+      { id: 'SZ1', name: 'North Quad Assembly (SZ1)', lat: 33.8842, lng: -117.8855 },
+      { id: 'SZ2', name: 'East Perimeter Gate (SZ2)', lat: 33.8825, lng: -117.8805 },
+      { id: 'SZ3', name: 'West Athletics Pavilion (SZ3)', lat: 33.8850, lng: -117.8895 },
+      { id: 'SZ4', name: 'South Gate Egress (SZ4)', lat: 33.8785, lng: -117.8850 }
+    ];
+
+    safeHavens.forEach(function(h) {
+      var icon = L.divIcon({
+        className: '',
+        html: '<div class="haven-pin">🛡️</div>',
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+      var m = L.marker([h.lat, h.lng], { icon: icon }).addTo(map);
+      m.bindPopup('<strong>🛡️ Safe Haven: ' + h.name + '</strong>');
+      havenMarkers[h.id] = m;
+    });
+
+    // Map tap to pin epicenter
+    map.on('click', function(e) {
+      setEpicenter(e.latlng.lat, e.latlng.lng);
+      if (window.AdminAndroidApp && window.AdminAndroidApp.onMapClicked) {
+        window.AdminAndroidApp.onMapClicked(e.latlng.lat, e.latlng.lng);
+      }
+    });
+
+    function setEpicenter(lat, lng, radius) {
+      if (!radius && adminPreviewCircle) {
+        radius = adminPreviewCircle.getRadius();
+      }
+      if (!radius) radius = 200;
+
+      var pinHtml = '<div style="position:relative;">' +
+                      '<div class="epicenter-pin">🎯</div>' +
+                      '<div class="epicenter-label">📍 EPICENTER</div>' +
+                    '</div>';
+
+      var pinIcon = L.divIcon({
+        className: '',
+        html: pinHtml,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+
+      if (!adminPinMarker) {
+        adminPinMarker = L.marker([lat, lng], {
+          icon: pinIcon,
+          draggable: true,
+          zIndexOffset: 3000
+        }).addTo(map);
+
+        adminPinMarker.on('drag', function(e) {
+          var p = e.target.getLatLng();
+          if (adminPreviewCircle) adminPreviewCircle.setLatLng(p);
+        });
+
+        adminPinMarker.on('dragend', function(e) {
+          var p = e.target.getLatLng();
+          setEpicenter(p.lat, p.lng);
+          if (window.AdminAndroidApp && window.AdminAndroidApp.onMapClicked) {
+            window.AdminAndroidApp.onMapClicked(p.lat, p.lng);
+          }
+        });
+      } else {
+        adminPinMarker.setLatLng([lat, lng]);
+      }
+
+      if (adminPreviewCircle) {
+        adminPreviewCircle.setLatLng([lat, lng]);
+        adminPreviewCircle.setRadius(radius);
+      } else {
+        adminPreviewCircle = L.circle([lat, lng], {
+          radius: radius,
+          color: '#dc2626',
+          dashArray: '6, 6',
+          fillColor: '#ef4444',
+          fillOpacity: 0.28,
+          weight: 2.5
+        }).addTo(map);
+      }
+    }
+
+    function updateRadius(radius) {
+      if (adminPreviewCircle) {
+        adminPreviewCircle.setRadius(radius);
+      }
+    }
+
+    function clearHazard() {
+      if (adminPreviewCircle) {
+        map.removeLayer(adminPreviewCircle);
+        adminPreviewCircle = null;
+      }
+    }
+
+    function setFleetStudents(students) {
+      for (var em in fleetMarkers) {
+        map.removeLayer(fleetMarkers[em]);
+      }
+      fleetMarkers = {};
+
+      students.forEach(function(s) {
+        var pinClass = s.inHazard ? 'fleet-pin danger' : 'fleet-pin';
+        var statusBadge = s.inHazard ? '🚨' : '🟢';
+        var html = '<div style="position:relative;">' +
+                     '<div class="' + pinClass + '">👤</div>' +
+                     '<div class="pin-label">' + s.name + ' ' + statusBadge + '</div>' +
+                   '</div>';
+
+        var icon = L.divIcon({
+          className: '',
+          html: html,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        });
+
+        var m = L.marker([s.lat, s.lng], { icon: icon, zIndexOffset: 1000 }).addTo(map);
+        m.bindPopup('<strong>🧑 ' + s.name + '</strong><br/>Status: ' + (s.inHazard ? '🚨 IN HAZARD' : '🟢 SAFE'));
+        fleetMarkers[s.email] = m;
+      });
+    }
+
+    // Set initial epicenter pin
+    setEpicenter(33.8800, -117.8860, 200);
+  </script>
+</body>
+</html>

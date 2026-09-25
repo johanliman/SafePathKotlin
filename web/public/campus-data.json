@@ -1,0 +1,233 @@
+{
+  "campus": {
+    "name": "State University Campus",
+    "center": { "lat": 33.8823, "lng": -117.8851 },
+    "bounds": {
+      "north": 33.8890,
+      "south": 33.8760,
+      "east": -117.8780,
+      "west": -117.8920
+    }
+  },
+  "buildings": [
+    { "id": "B1", "name": "Pollak Library", "lat": 33.8813, "lng": -117.8854, "code": "PLN", "accessible": true },
+    { "id": "B2", "name": "McCarthy Science Hall", "lat": 33.8800, "lng": -117.8860, "code": "MH", "accessible": true },
+    { "id": "B3", "name": "Titan Student Union", "lat": 33.8820, "lng": -117.8885, "code": "TSU", "accessible": true },
+    { "id": "B4", "name": "Engineering & Computer Science Building", "lat": 33.8829, "lng": -117.8828, "code": "CS", "accessible": true },
+    { "id": "B5", "name": "Student Residence Halls", "lat": 33.8865, "lng": -117.8845, "code": "RH", "accessible": true },
+    { "id": "B6", "name": "Titan Athletics Stadium", "lat": 33.8845, "lng": -117.8890, "code": "STAD", "accessible": true },
+    { "id": "B7", "name": "Humanities & Social Sciences", "lat": 33.8808, "lng": -117.8835, "code": "H", "accessible": true },
+    { "id": "B8", "name": "Campus Health & Medical Center", "lat": 33.8835, "lng": -117.8870, "code": "SHC", "accessible": true },
+    { "id": "B9", "name": "University Police Department", "lat": 33.8795, "lng": -117.8840, "code": "UPD", "accessible": true },
+    { "id": "B10", "name": "Visual Arts Complex", "lat": 33.8810, "lng": -117.8875, "code": "VA", "accessible": true }
+  ],
+  "safeZones": [
+    {
+      "id": "SZ1",
+      "name": "North Quad Assembly Field",
+      "type": "assembly_point",
+      "lat": 33.8842,
+      "lng": -117.8855,
+      "capacity": 1500,
+      "supplies": ["First Aid", "Emergency Water", "Satellite Phone"],
+      "accessible": true,
+      "description": "Open grass quad free from building collapse perimeter. Primary evacuation zone for North Campus."
+    },
+    {
+      "id": "SZ2",
+      "name": "East Perimeter Emergency Exit & Triage",
+      "type": "exit",
+      "lat": 33.8825,
+      "lng": -117.8805,
+      "capacity": 2000,
+      "supplies": ["Paramedic Ambulance Bay", "Evacuation Shuttles", "Rations"],
+      "accessible": true,
+      "description": "Direct unobstructed road access for municipal emergency responders and vehicle evacuation."
+    },
+    {
+      "id": "SZ3",
+      "name": "West Athletics Shelter & High Ground",
+      "type": "shelter",
+      "lat": 33.8850,
+      "lng": -117.8895,
+      "capacity": 1200,
+      "supplies": ["Reinforced Concrete Structure", "Backup Generator", "Air Filtration"],
+      "accessible": true,
+      "description": "Reinforced interior pavilion on elevated grade, equipped with independent HEPA air filters."
+    },
+    {
+      "id": "SZ4",
+      "name": "South Gate Plaza Evacuation Station",
+      "type": "exit",
+      "lat": 33.8785,
+      "lng": -117.8850,
+      "capacity": 1000,
+      "supplies": ["First Aid Station", "Police Evacuation Escort"],
+      "accessible": true,
+      "description": "South vehicular egress point onto city arterial boulevard."
+    }
+  ],
+  "walkwayNodes": [
+    { "id": "N1", "lat": 33.8813, "lng": -117.8854, "name": "Library Plaza" },
+    { "id": "N2", "lat": 33.8800, "lng": -117.8860, "name": "Science Concourse" },
+    { "id": "N3", "lat": 33.8805, "lng": -117.8852, "name": "Central Spine South" },
+    { "id": "N4", "lat": 33.8820, "lng": -117.8852, "name": "Central Spine Middle" },
+    { "id": "N5", "lat": 33.8835, "lng": -117.8853, "name": "Central Spine North" },
+    { "id": "N6", "lat": 33.8842, "lng": -117.8855, "name": "North Quad Lawn (SZ1)" },
+    { "id": "N7", "lat": 33.8820, "lng": -117.8870, "name": "Student Union Walkway" },
+    { "id": "N8", "lat": 33.8820, "lng": -117.8885, "name": "TSU Courtyard" },
+    { "id": "N9", "lat": 33.8835, "lng": -117.8870, "name": "Health Center Promenade" },
+    { "id": "N10", "lat": 33.8850, "lng": -117.8895, "name": "West Stadium Pavilion (SZ3)" },
+    { "id": "N11", "lat": 33.8829, "lng": -117.8840, "name": "Engineering Access Walk" },
+    { "id": "N12", "lat": 33.8829, "lng": -117.8828, "name": "Engineering Quad" },
+    { "id": "N13", "lat": 33.8825, "lng": -117.8805, "name": "East Perimeter Gate (SZ2)" },
+    { "id": "N14", "lat": 33.8808, "lng": -117.8835, "name": "Humanities Terrace" },
+    { "id": "N15", "lat": 33.8795, "lng": -117.8840, "name": "Police Center Lane" },
+    { "id": "N16", "lat": 33.8785, "lng": -117.8850, "name": "South Gate Egress (SZ4)" },
+    { "id": "N17", "lat": 33.8860, "lng": -117.8850, "name": "Housing North Connector" },
+    { "id": "N18", "lat": 33.8865, "lng": -117.8845, "name": "Dorms Main Entrance" },
+    { "id": "N19", "lat": 33.8810, "lng": -117.8875, "name": "Arts Walkway" },
+    { "id": "N20", "lat": 33.8798, "lng": -117.8880, "name": "Southwest Outer Walkway" }
+  ],
+  "walkwayEdges": [
+    { "from": "N1", "to": "N3", "accessible": true, "hasStairs": false },
+    { "from": "N1", "to": "N4", "accessible": true, "hasStairs": false },
+    { "from": "N1", "to": "N7", "accessible": true, "hasStairs": false },
+    { "from": "N2", "to": "N3", "accessible": true, "hasStairs": false },
+    { "from": "N2", "to": "N19", "accessible": false, "hasStairs": true },
+    { "from": "N2", "to": "N15", "accessible": true, "hasStairs": false },
+    { "from": "N3", "to": "N4", "accessible": true, "hasStairs": false },
+    { "from": "N3", "to": "N14", "accessible": true, "hasStairs": false },
+    { "from": "N3", "to": "N15", "accessible": true, "hasStairs": false },
+    { "from": "N4", "to": "N5", "accessible": true, "hasStairs": false },
+    { "from": "N4", "to": "N7", "accessible": true, "hasStairs": false },
+    { "from": "N4", "to": "N11", "accessible": true, "hasStairs": false },
+    { "from": "N5", "to": "N6", "accessible": true, "hasStairs": false },
+    { "from": "N5", "to": "N9", "accessible": true, "hasStairs": false },
+    { "from": "N5", "to": "N17", "accessible": true, "hasStairs": false },
+    { "from": "N6", "to": "N17", "accessible": true, "hasStairs": false },
+    { "from": "N7", "to": "N8", "accessible": true, "hasStairs": false },
+    { "from": "N7", "to": "N9", "accessible": true, "hasStairs": false },
+    { "from": "N8", "to": "N10", "accessible": true, "hasStairs": false },
+    { "from": "N8", "to": "N19", "accessible": true, "hasStairs": false },
+    { "from": "N9", "to": "N10", "accessible": true, "hasStairs": false },
+    { "from": "N11", "to": "N12", "accessible": true, "hasStairs": false },
+    { "from": "N12", "to": "N13", "accessible": true, "hasStairs": false },
+    { "from": "N14", "to": "N12", "accessible": false, "hasStairs": true },
+    { "from": "N14", "to": "N13", "accessible": true, "hasStairs": false },
+    { "from": "N15", "to": "N16", "accessible": true, "hasStairs": false },
+    { "from": "N17", "to": "N18", "accessible": true, "hasStairs": false },
+    { "from": "N19", "to": "N20", "accessible": true, "hasStairs": false },
+    { "from": "N20", "to": "N16", "accessible": true, "hasStairs": false }
+  ],
+  "emergencyTypes": [
+    {
+      "id": "Tsunami",
+      "name": "Tsunami Warning",
+      "icon": "🌊",
+      "color": "#dc2626",
+      "defaultRadius": 500,
+      "severity": "CRITICAL",
+      "instructions": "Inundation risk detected. Immediately evacuate uphill or proceed to designated high-ground structural shelters. Avoid low coastal and drainage corridors."
+    },
+    {
+      "id": "Earthquake",
+      "name": "Earthquake Alert",
+      "icon": "🏚️",
+      "color": "#dc2626",
+      "defaultRadius": 400,
+      "severity": "CRITICAL",
+      "instructions": "DROP, COVER, AND HOLD ON. Protect your head. After shaking stops, evacuate structurally compromised buildings to designated open-air assembly quads. Watch for fallen power lines."
+    },
+    {
+      "id": "Wildfire",
+      "name": "Wildfire Evacuation",
+      "icon": "🔥",
+      "color": "#dc2626",
+      "defaultRadius": 450,
+      "severity": "CRITICAL",
+      "instructions": "Rapidly approaching brush fire and ember storm. Evacuate immediately downwind away from dry vegetation. Cover mouth and nose with damp cloth. Head to East Perimeter Exit."
+    },
+    {
+      "id": "Extreme Heat",
+      "name": "Extreme Heat Advisory",
+      "icon": "☀️",
+      "color": "#dc2626",
+      "defaultRadius": 600,
+      "severity": "ADVISORY",
+      "instructions": "Dangerous wet-bulb temperature exceeding safety limits. Limit outdoor exposure. Hydrate at emergency water stations and seek air-conditioned indoor cooling centers."
+    },
+    {
+      "id": "Flood",
+      "name": "Flash Flood Warning",
+      "icon": "🌧️",
+      "color": "#dc2626",
+      "defaultRadius": 350,
+      "severity": "WARNING",
+      "instructions": "Rapid surface water runoff and flash flooding across campus lowlands. Do not attempt to walk through moving water. Move to upper building floors or elevated terrain."
+    },
+    {
+      "id": "Thunderstorm",
+      "name": "Severe Thunderstorm / Lightning",
+      "icon": "⚡",
+      "color": "#dc2626",
+      "defaultRadius": 500,
+      "severity": "WARNING",
+      "instructions": "Severe cloud-to-ground lightning and microburst winds. Immediately cease all outdoor activities and seek fully enclosed, grounded buildings. Avoid open fields and tall trees."
+    },
+    {
+      "id": "High Wind",
+      "name": "High Wind Hazard",
+      "icon": "💨",
+      "color": "#dc2626",
+      "defaultRadius": 400,
+      "severity": "WARNING",
+      "instructions": "Gale-force gusts exceeding 65 mph. Beware of flying structural debris, falling branches, and broken glass facades. Stay indoors away from exterior windows."
+    },
+    {
+      "id": "Volcano",
+      "name": "Volcanic Ash / Pyroclastic Alert",
+      "icon": "🌋",
+      "color": "#dc2626",
+      "defaultRadius": 700,
+      "severity": "CRITICAL",
+      "instructions": "Heavy abrasive ashfall and toxic sulfur gases. Wear particle masks (N95+). Seal building ventilation intakes and seek shelter in designated filtration pavilions."
+    },
+    {
+      "id": "Hazardous Materials",
+      "name": "Hazardous Materials (HazMat) Spill",
+      "icon": "☣️",
+      "color": "#dc2626",
+      "defaultRadius": 200,
+      "severity": "CRITICAL",
+      "instructions": "Toxic chemical vapor plume reported. Evacuate UPWIND and cross-wind immediately. Do not touch unidentified substances. Allow HazMat response teams right-of-way."
+    },
+    {
+      "id": "Air Quality",
+      "name": "Severe Air Quality Emergency",
+      "icon": "🌫️",
+      "color": "#dc2626",
+      "defaultRadius": 400,
+      "severity": "ADVISORY",
+      "instructions": "Hazardous Air Quality Index (AQI > 300) due to smoke inversion. Individuals with respiratory conditions must remain indoors. Use HEPA filtered safe buildings."
+    },
+    {
+      "id": "Radiation",
+      "name": "Radiation Threat / Incident",
+      "icon": "☢️",
+      "color": "#dc2626",
+      "defaultRadius": 220,
+      "severity": "CRITICAL",
+      "instructions": "Radiological contamination detected. Implement TIME, DISTANCE, and SHIELDING protocols. Proceed to designated reinforced concrete basements and subterranean shelters immediately."
+    },
+    {
+      "id": "Public Health Emergency",
+      "name": "Public Health Emergency",
+      "icon": "🏥",
+      "color": "#dc2626",
+      "defaultRadius": 200,
+      "severity": "WARNING",
+      "instructions": "Biohazard containment perimeter active. Follow physical distancing protocols, don appropriate personal protective equipment, and report to Health Center for screening."
+    }
+  ]
+}

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafePath - Emergency Alert & Safe Route | CPSC 515</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/leaflet.css" />
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <nav class="navbar">
+    <a href="/" class="brand">
+      🛡️ SafePath <span class="brand-badge">CPSC 515 Mobile Computing</span>
+    </a>
+    <div class="nav-links">
+      <a href="/demo.html" class="nav-btn active">⚡ Split Live Demo</a>
+      <a href="/admin.html" class="nav-btn">🛡️ Admin Panel</a>
+      <a href="/user.html" class="nav-btn">📱 Student Panel</a>
+    </div>
+  </nav>
+
+  <div class="container" style="max-width: 1180px; margin-top: 30px;">
+    
+    <!-- Hero Banner -->
+    <div class="card" style="background: linear-gradient(135deg, #1e293b, #0f172a); border-color: #3b82f6; padding: 36px 30px; text-align: center;">
+      <h1 style="font-size: 2.4rem; font-weight: 800; margin-bottom: 12px; background: linear-gradient(90deg, #60a5fa, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        SafePath: Emergency Alert & Safe Route System
+      </h1>
+      <p style="font-size: 1.15rem; color: #cbd5e1; max-width: 820px; margin: 0 auto 24px;">
+        An intelligent mobile computing platform delivering real-time geofenced emergency broadcasts, dynamic hazard-avoidance evacuation routing (A*), and live mobile telemetry analysis across university campuses.
+      </p>
+
+      <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+        <a href="/demo.html" class="btn btn-primary" style="width: auto; padding: 14px 28px; font-size: 1.05rem;">
+          🚀 Open Split Live Demo (Side-by-Side)
+        </a>
+        <a href="/admin.html" class="btn btn-secondary" style="width: auto; padding: 14px 24px;">
+          🚨 Admin Operations Center
+        </a>
+        <a href="/user.html" class="btn btn-secondary" style="width: auto; padding: 14px 24px;">
+          📱 Student Mobile App
+        </a>
+      </div>
+    </div>
+
+    <!-- Group Information Card -->
+    <div class="card" style="margin-top: 24px;">
+      <div class="card-header">
+        <h3 class="card-title">👥 CPSC 515 Group Project Team</h3>
+        <span class="badge badge-info">Fall 2026</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
+        <div style="background: var(--bg-card); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+          <div style="font-weight: 700; color: #60a5fa;">Daniel Wu</div>
+          <div style="font-size: 0.82rem; color: #9ca3af; margin-top: 2px;">UI/UX & Emergency Alert UI</div>
+          <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 6px;">Screens, warning displays, accessibility guidelines, user feedback.</div>
+        </div>
+        <div style="background: var(--bg-card); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+          <div style="font-weight: 700; color: #34d399;">Johan Liman</div>
+          <div style="font-size: 0.82rem; color: #9ca3af; margin-top: 2px;">Mobile App & Integration</div>
+          <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 6px;">GPS location tracking, map integration, backend sync & location updates.</div>
+        </div>
+        <div style="background: var(--bg-card); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+          <div style="font-weight: 700; color: #fbbf24;">Jie Chen</div>
+          <div style="font-size: 0.82rem; color: #9ca3af; margin-top: 2px;">Emergency Data Management</div>
+          <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 6px;">Event records, affected zone geometries, safe assembly points, geofencing queries.</div>
+        </div>
+        <div style="background: var(--bg-card); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+          <div style="font-weight: 700; color: #f472b6;">Yu-Cheng Chang</div>
+          <div style="font-size: 0.82rem; color: #9ca3af; margin-top: 2px;">Safe Route Planning</div>
+          <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 6px;">A* pathfinding, hazard obstacle avoidance, walk time & distance estimation.</div>
+        </div>
+        <div style="background: var(--bg-card); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+          <div style="font-weight: 700; color: #a78bfa;">Siling Liu</div>
+          <div style="font-size: 0.82rem; color: #9ca3af; margin-top: 2px;">Testing & Evaluation</div>
+          <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 6px;">Scenario testing, GPS accuracy jitter, network latency benchmarks & report.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Supported 12 Emergency Alert Types -->
+    <div class="card" style="margin-top: 24px;">
+      <div class="card-header">
+        <h3 class="card-title">🚨 12 Supported Emergency Categories</h3>
+        <span class="badge badge-danger">Real-time Geofenced</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; font-size: 0.9rem;">
+        <div style="background: var(--bg-card); padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.4rem;">🌊</span>
+          <div><strong>Tsunami</strong><br/><span style="color:#9ca3af; font-size:0.78rem;">Rapid vertical evacuation to high-ground</span></div>
+        </div>
+        <div style="background: var(--bg-card); padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.4rem;">🏚️</span>
+          <div><strong>Earthquake</strong><br/><span style="color:#9ca3af; font-size:0.78rem;">Drop, Cover, Hold on; open-air quad assembly</span></div>
+        </div>
+        <div style="background: var(--bg-card); padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.4rem;">🔥</span>
+          <div><strong>Wildfire</strong><br/><span style="color:#9ca3af; font-size:0.78rem;">Downwind evacuation, perimeter exit triage</span></div>
+        </div>
+        <div style="background: var(--bg-card); padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.4rem;">☀️</span>
+          <div><strong>Extreme Heat</strong><br/><span style="color:#9ca3af; font-size:0.78rem;">Indoor cooling hubs, hydration stations</span></div>
+        </div>
+        <div style="background: var(--bg-card); padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.4rem;">🌧️</span>
+          <div><strong>Flood</strong><br/><span style="color:#9ca3af; font-size:0.78rem;">Avoid low-lying waterways and underpasses</span></div>
+        </div>
+        <div style="background: var(--bg-card); padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.4rem;">⚡</span>
+          <div><strong>Thunderstorm</strong><br/><span style="color:#9ca3af; font-size:0.78rem;">Lightning shelter in grounded concrete structures</span></div>
+        </div>
+        <div style="background: var(--bg-card); padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.4rem;">💨</span>
+          <div><strong>High Wind</strong><br/><span style="color:#9ca3af; font-size:0.78rem;">Flying debris hazard, stay away from glass</span></div>
+        </div>
+        <div style="background: var(--bg-card); padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.4rem;">🌋</span>
+          <div><strong>Volcano</strong><br/><span style="color:#9ca3af; font-size:0.78rem;">Ashfall protection, HEPA filtered facilities</span></div>
+        </div>
+        <div style="background: var(--bg-card); padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.4rem;">☣️</span>
+          <div><strong>Hazardous Materials</strong><br/><span style="color:#9ca3af; font-size:0.78rem;">Upwind toxic plume evacuation protocol</span></div>
+        </div>
+        <div style="background: var(--bg-card); padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.4rem;">🌫️</span>
+          <div><strong>Air Quality</strong><br/><span style="color:#9ca3af; font-size:0.78rem;">AQI > 300 alert, N95 respirators distribution</span></div>
+        </div>
+        <div style="background: var(--bg-card); padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.4rem;">☢️</span>
+          <div><strong>Radiation</strong><br/><span style="color:#9ca3af; font-size:0.78rem;">Time-Distance-Shielding subterranean shelter</span></div>
+        </div>
+        <div style="background: var(--bg-card); padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.4rem;">🏥</span>
+          <div><strong>Public Health Emergency</strong><br/><span style="color:#9ca3af; font-size:0.78rem;">Biocontainment perimeter & medical screening</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Computing Evaluation Concepts Card -->
+    <div class="card" style="margin-top: 24px; margin-bottom: 40px;">
+      <div class="card-header">
+        <h3 class="card-title">🔬 Mobile Computing Research & Evaluation Indicators</h3>
+        <span class="badge badge-success">Telemetry Bench</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+        <div style="background: var(--bg-card); padding: 14px; border-radius: 8px;">
+          <strong>📶 Connectivity Simulator</strong>
+          <p style="font-size: 0.82rem; color: #9ca3af; margin-top: 4px;">
+            Simulates WiFi, 4G, Weak 2G/3G Cellular, and Offline airplane mode with local cache fallback and queue synchronization.
+          </p>
+        </div>
+        <div style="background: var(--bg-card); padding: 14px; border-radius: 8px;">
+          <strong>🎯 GPS Accuracy Jitter (±3m to ±50m)</strong>
+          <p style="font-size: 0.82rem; color: #9ca3af; margin-top: 4px;">
+            Models indoor multipath interference, urban canyon degradation, and dual-frequency GPS L1/L5 with visual uncertainty radius.
+          </p>
+        </div>
+        <div style="background: var(--bg-card); padding: 14px; border-radius: 8px;">
+          <strong>⚡ Alert Latency Instrumentation</strong>
+          <p style="font-size: 0.82rem; color: #9ca3af; margin-top: 4px;">
+            Measures transmission propagation delay from Admin EOC dispatch to student device reception in milliseconds.
+          </p>
+        </div>
+        <div style="background: var(--bg-card); padding: 14px; border-radius: 8px;">
+          <strong>🔋 Battery Consumption Estimator</strong>
+          <p style="font-size: 0.82rem; color: #9ca3af; margin-top: 4px;">
+            Calculates energy drain rate (%/hour) based on GPS update interval (1s vs 10s vs 60s) and cellular transmitter power level.
+          </p>
+        </div>
+        <div style="background: var(--bg-card); padding: 14px; border-radius: 8px;">
+          <strong>📦 Bandwidth Consumption Monitor</strong>
+          <p style="font-size: 0.82rem; color: #9ca3af; margin-top: 4px;">
+            Tracks cumulative payload bytes sent and received during real-time tracking and SSE broadcast delivery.
+          </p>
+        </div>
+        <div style="background: var(--bg-card); padding: 14px; border-radius: 8px;">
+          <strong>👥 Multi-User Fleet Scalability</strong>
+          <p style="font-size: 0.82rem; color: #9ca3af; margin-top: 4px;">
+            Simulates concurrent active campus students, displaying real-time location pings and hazard zone overlap on the Admin dashboard.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

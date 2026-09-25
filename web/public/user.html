@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Navigation & Evacuation | SafePath</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/leaflet.css" />
+  <script src="/leaflet.js"></script>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <nav class="navbar">
+    <a href="/" class="brand">
+      🛡️ SafePath <span class="brand-badge" style="background:#2563eb;">📱 Student Panel</span>
+    </a>
+    <div class="nav-links">
+      <a href="/user.html" class="nav-btn active">📱 Student View</a>
+      <a href="/admin.html" class="nav-btn" style="color: #dc2626; border-color: #fca5a5;">🛡️ Admin View →</a>
+      <a href="/demo.html" class="nav-btn">⚡ Split Demo</a>
+    </div>
+  </nav>
+
+  <div class="container" style="max-width: 1200px;">
+    
+    <!-- Distinct Role Distinction Banner for Student View -->
+    <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 12px; padding: 14px 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+      <div>
+        <div style="font-size: 1.15rem; font-weight: 800; color: #1e40af; display: flex; align-items: center; gap: 10px;">
+          <span>📱 STUDENT SAFE ROUTE NAVIGATION & EVACUATION</span>
+          <span style="background: #2563eb; color: #fff; font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; font-weight: 700; letter-spacing: 0.5px;">STUDENT ROLE</span>
+        </div>
+        <div style="font-size: 0.85rem; color: #1e3a8a; margin-top: 3px;">
+          Select a student below to track real-time position, receive instant hazard proximity alerts, and follow the shortest safe path to emergency assembly havens.
+        </div>
+      </div>
+      <a href="/admin.html" class="btn" style="background: #dc2626; color: #fff; font-weight: 700; font-size: 0.85rem; padding: 9px 18px; border-radius: 8px; text-decoration: none; box-shadow: 0 2px 6px rgba(220,38,38,0.3);">
+        🛡️ Switch to Admin Console →
+      </a>
+    </div>
+
+    <!-- 1. MULTI-USER SWITCHER BAR (Only names: Daniel, Johan, Jie, Yu, Siling) -->
+    <div style="margin-bottom: 14px;">
+      <div style="font-size: 0.8rem; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 8px;">
+        👥 Active Student (Click to Switch):
+      </div>
+      <div class="student-bar">
+        <button class="student-chip active" data-email="daniel.wu@csu.fullerton.edu" onclick="selectUser('daniel.wu@csu.fullerton.edu')">
+          🧑 Daniel
+        </button>
+        <button class="student-chip" data-email="johan.liman@csu.fullerton.edu" onclick="selectUser('johan.liman@csu.fullerton.edu')">
+          🧑 Johan
+        </button>
+        <button class="student-chip" data-email="jie.chen@csu.fullerton.edu" onclick="selectUser('jie.chen@csu.fullerton.edu')">
+          🧑 Jie
+        </button>
+        <button class="student-chip" data-email="yucheng.chang@csu.fullerton.edu" onclick="selectUser('yucheng.chang@csu.fullerton.edu')">
+          🧑 Yu
+        </button>
+        <button class="student-chip" data-email="siling.liu@csu.fullerton.edu" onclick="selectUser('siling.liu@csu.fullerton.edu')">
+          🧑 Siling
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. EMERGENCY NOTIFICATION TOAST/BANNER -->
+    <div id="user-alert-notification-area"></div>
+
+    <!-- 3. STATUS BANNER (Dynamic Safe Route Countdown) -->
+    <div id="evacuation-display-box" class="evacuation-card" style="border: 1.5px solid #86efac; background: #f0fdf4;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.6rem;">🟢</span>
+          <div>
+            <div style="font-size: 1.05rem; font-weight: 800; color: #15803d;">Campus Status: All Clear</div>
+            <div style="font-size: 0.85rem; color: #166534;">No active emergencies reported in your immediate sector. You are safe.</div>
+          </div>
+        </div>
+        <span class="badge badge-success" style="font-size: 0.85rem; padding: 5px 14px;">🟢 NORMAL</span>
+      </div>
+    </div>
+
+    <!-- 4. CAMPUS MAP (Shows You + Peer Students + Green Safe Route) -->
+    <div class="card" style="padding: 12px;">
+      <div id="user-map" class="map-container" style="height: 540px;"></div>
+
+      <!-- Quick Action Controls Below Map -->
+      <div class="quick-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 6px; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <button id="btn-evacuate-move" class="btn btn-warning" style="font-size: 0.95rem; font-weight: 700; padding: 10px 22px; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);" onclick="window.safePathApp.toggleMoveToSafeZone()">
+            🏃 Move to Nearest Safe Zone
+          </button>
+          <button id="btn-evacuate-all" class="btn btn-primary" style="font-size: 0.95rem; font-weight: 700; padding: 10px 22px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);" onclick="window.safePathApp.toggleMoveAllToSafeZones()">
+            👥 Move All (Evacuate All 5 Students)
+          </button>
+        </div>
+
+        <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; color: #475569; font-size: 0.9rem;">
+          <input type="checkbox" onchange="window.safePathApp.toggleAccessibility(this.checked)">
+          ♿ Wheelchair Accessible (Ramps Only, No Stairs)
+        </label>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/app.js"></script>
+  <script>
+    let userApp;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      userApp = new SafePathEngine({ role: 'user', mapId: 'user-map' });
+      window.safePathApp = userApp;
+    });
+
+    function selectUser(email) {
+      userApp.switchActiveUser(email);
+    }
+  </script>
+</body>
+</html>

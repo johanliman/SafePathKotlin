@@ -1,0 +1,1587 @@
+// SafePath - Clean, Simple Emergency Navigation & Evacuation Engine
+// CPSC 515 Mobile Computing
+
+class SafePathEngine {
+  constructor(options = {}) {
+    this.role = options.role || 'user'; // 'user', 'admin', or 'demo'
+    this.mapId = options.mapId || 'user-map';
+
+    // 5 Campus Students with distinct fixed positions
+    this.students = [
+      {
+        email: "daniel.wu@csu.fullerton.edu",
+        name: "Daniel",
+        lat: 33.8813,
+        lng: -117.8854
+      },
+      {
+        email: "johan.liman@csu.fullerton.edu",
+        name: "Johan",
+        lat: 33.8802,
+        lng: -117.8858
+      },
+      {
+        email: "jie.chen@csu.fullerton.edu",
+        name: "Jie",
+        lat: 33.8829,
+        lng: -117.8828
+      },
+      {
+        email: "yucheng.chang@csu.fullerton.edu",
+        name: "Yu",
+        lat: 33.8820,
+        lng: -117.8885
+      },
+      {
+        email: "siling.liu@csu.fullerton.edu",
+        name: "Siling",
+        lat: 33.8835,
+        lng: -117.8870
+      }
+    ];
+
+    // Selected Active Student
+    const initialEmail = options.email || localStorage.getItem('safepath_user_email') || "daniel.wu@csu.fullerton.edu";
+    const initialUser = this.students.find(s => s.email === initialEmail) || this.students[0];
+
+    this.userEmail = initialUser.email;
+    this.userName = initialUser.name;
+    this.userLat = initialUser.lat;
+    this.userLng = initialUser.lng;
+
+    this.campusData = null;
+    this.map = null;
+    this.userMarker = null;
+    this.adminPinMarker = null;
+    this.adminPreviewCircle = null;
+    this.otherStudentMarkers = new Map();
+    this.hazardCircles = new Map();
+    this.safeZoneMarkers = new Map();
+    this.activeRoutePolyline = null;
+    this.activeAlerts = [];
+    this.accessibilityMode = false;
+    this.lastNotifiedAlertId = null;
+    this.pollInterval = null;
+
+    this.init();
+  }
+
+  async init() {
+    await this.loadCampusData();
+    await this.syncFleetFromServer();
+    this.initMap();
+    this.connectSSE();
+    this.startPollingFallback();
+    await this.refreshActiveAlerts();
+
+    // Initial state check
+    this.renderAllStudentsOnMap();
+    this.computeSafeRoute();
+  }
+
+  async syncFleetFromServer() {
+    try {
+      const res = await fetch('/api/users');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data && data.users) {
+        data.users.forEach(u => {
+          const st = this.students.find(s => s.email === u.email);
+          if (st) {
+            st.lat = parseFloat(u.latitude);
+            st.lng = parseFloat(u.longitude);
+            st.status = u.status;
+            if (u.distanceMeters !== undefined) st.distanceMeters = u.distanceMeters;
+            if (u.estMinutes !== undefined) st.estMinutes = u.estMinutes;
+            if (u.targetHaven !== undefined) st.targetHaven = u.targetHaven;
+          }
+        });
+        if (this.role === 'user') {
+          const me = this.students.find(s => s.email === this.userEmail);
+          if (me) {
+            this.userLat = me.lat;
+            this.userLng = me.lng;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Fleet sync error:', e);
+    }
+  }
+
+  async loadCampusData() {
+    try {
+      const res = await fetch('/api/campus');
+      this.campusData = await res.json();
+    } catch (e) {
+      console.warn('Campus data fetch error:', e);
+    }
+  }
+
+  initMap() {
+    const mapElement = document.getElementById(this.mapId);
+    if (!mapElement) return;
+
+    this.map = L.map(this.mapId, {
+      center: [this.userLat, this.userLng],
+      zoom: 16,
+      zoomControl: true
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19
+    }).addTo(this.map);
+
+    this.renderAllStudentsOnMap();
+
+    // Map click to change location or pin epicenter
+    this.map.on('click', (e) => {
+      if (this.role === 'user') {
+        this.setUserLocation(e.latlng.lat, e.latlng.lng);
+      } else if (this.role === 'admin') {
+        this.setAdminPin(e.latlng.lat, e.latlng.lng);
+      } else if (this.role === 'demo') {
+        if (this.mapId === 'split-admin-map') {
+          this.setAdminPin(e.latlng.lat, e.latlng.lng);
+        } else {
+          this.setUserLocation(e.latlng.lat, e.latlng.lng);
+        }
+      }
+    });
+
+    // Auto-place initial epicenter pin on admin map
+    if (this.role === 'admin' || (this.role === 'demo' && this.mapId === 'split-admin-map')) {
+      const latInput = document.getElementById('admin-lat') || document.getElementById('split-admin-lat');
+      const lngInput = document.getElementById('admin-lng') || document.getElementById('split-admin-lng');
+      const initLat = latInput ? parseFloat(latInput.value) : 33.8800;
+      const initLng = lngInput ? parseFloat(lngInput.value) : -117.8860;
+      this.setAdminPin(initLat, initLng);
+    }
+  }
+
+  // --- ADMIN MAP PINNING & DYNAMIC GEOFENCE PREVIEW ---
+  setAdminPin(lat, lng, radius = null) {
+    if (!this.map) return;
+
+    if (radius === null) {
+      const radiusInput = document.getElementById('admin-radius') || document.getElementById('split-admin-radius');
+      radius = radiusInput ? parseFloat(radiusInput.value) : 200;
+    }
+
+    const latInput = document.getElementById('admin-lat') || document.getElementById('split-admin-lat');
+    const lngInput = document.getElementById('admin-lng') || document.getElementById('split-admin-lng');
+    if (latInput) latInput.value = Number(lat).toFixed(4);
+    if (lngInput) lngInput.value = Number(lng).toFixed(4);
+
+    const pinHtml = `
+      <div style="position:relative; cursor:grab;">
+        <div style="background:#dc2626; width:34px; height:34px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 0 16px rgba(220,38,38,0.9); display:flex; align-items:center; justify-content:center; color:#fff; font-size:18px;">
+          🎯
+        </div>
+        <div style="position:absolute; top:-26px; left:-55px; background:rgba(220,38,38,0.95); color:#ffffff; font-size:11px; font-weight:800; padding:2px 8px; border-radius:12px; border:2px solid #ffffff; white-space:nowrap; box-shadow:0 4px 6px rgba(0,0,0,0.3);">
+          📍 EPICENTER PIN
+        </div>
+      </div>
+    `;
+
+    const pinIcon = L.divIcon({
+      html: pinHtml,
+      className: 'admin-epicenter-pin',
+      iconSize: [34, 34],
+      iconAnchor: [17, 17]
+    });
+
+    if (this.adminPinMarker) {
+      this.adminPinMarker.setLatLng([lat, lng]);
+    } else {
+      this.adminPinMarker = L.marker([lat, lng], {
+        icon: pinIcon,
+        draggable: true,
+        zIndexOffset: 3000
+      }).addTo(this.map);
+
+      this.adminPinMarker.on('drag', (e) => {
+        const pos = e.target.getLatLng();
+        if (latInput) latInput.value = pos.lat.toFixed(4);
+        if (lngInput) lngInput.value = pos.lng.toFixed(4);
+        if (this.adminPreviewCircle) {
+          this.adminPreviewCircle.setLatLng(pos);
+        }
+      });
+
+      this.adminPinMarker.on('dragend', (e) => {
+        const pos = e.target.getLatLng();
+        this.setAdminPin(pos.lat, pos.lng);
+      });
+    }
+
+    if (this.adminPreviewCircle) {
+      this.adminPreviewCircle.setLatLng([lat, lng]);
+      this.adminPreviewCircle.setRadius(radius);
+    } else {
+      this.adminPreviewCircle = L.circle([lat, lng], {
+        radius: radius,
+        color: '#dc2626',
+        dashArray: '6, 6',
+        fillColor: '#ef4444',
+        fillOpacity: 0.22,
+        weight: 2.5
+      }).addTo(this.map);
+      this.adminPreviewCircle.bindPopup(`<strong>📍 Hazard Geofence Preview</strong><br/>Radius: ${radius}m<br/><em>Click anywhere to change epicenter</em>`);
+    }
+  }
+
+  updateAdminPreviewRadius(radius) {
+    if (this.adminPreviewCircle) {
+      this.adminPreviewCircle.setRadius(radius);
+    }
+  }
+
+  // --- MULTI-USER RENDERING: ALL 5 STUDENTS VISIBLE ON MAP ---
+  renderAllStudentsOnMap() {
+    if (!this.map) return;
+
+    // Clear previous other student markers
+    for (const [email, marker] of this.otherStudentMarkers.entries()) {
+      this.map.removeLayer(marker);
+    }
+    this.otherStudentMarkers.clear();
+
+    // CASE A: ADMIN OPERATIONS PANEL (Shows ALL 5 fleet students with live coordinates)
+    if (this.role === 'admin') {
+      if (this.userMarker) {
+        this.map.removeLayer(this.userMarker);
+        this.userMarker = null;
+      }
+
+      this.students.forEach(student => {
+        const isStudentInDanger = this.isLocationInHazard(student.lat, student.lng);
+        const studentColor = isStudentInDanger ? '#ef4444' : '#10b981';
+
+        const adminHtml = `
+          <div style="position:relative;">
+            <div style="background:${studentColor}; width:26px; height:26px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 10px ${studentColor}; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; font-weight:bold;">
+              👤
+            </div>
+            <div style="position:absolute; top:-24px; left:-32px; background:rgba(15,23,42,0.95); color:#fff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; border:1px solid ${studentColor}; white-space:nowrap; box-shadow:0 2px 4px rgba(0,0,0,0.5);">
+              ${student.name.split(' ')[0]} ${isStudentInDanger ? '🚨' : '🟢'}
+            </div>
+          </div>
+        `;
+
+        const icon = L.divIcon({
+          html: adminHtml,
+          className: 'admin-student-pin',
+          iconSize: [26, 26],
+          iconAnchor: [13, 13]
+        });
+
+        const marker = L.marker([student.lat, student.lng], { icon, zIndexOffset: 1000 }).addTo(this.map);
+        marker.bindPopup(`
+          <strong>🧑 ${student.name}</strong><br/>
+          GPS: <code>${student.lat.toFixed(4)}, ${student.lng.toFixed(4)}</code><br/>
+          Status: <strong>${isStudentInDanger ? '🚨 IN HAZARD' : '🟢 SAFE'}</strong><br/>
+          Distance to Haven: <strong>${student.distanceMeters !== undefined ? student.distanceMeters + 'm' : 'Calculating...'}</strong>
+        `);
+        this.otherStudentMarkers.set(student.email, marker);
+      });
+
+      this.renderSafeZoneMarkers();
+      return;
+    }
+
+    // CASE B: USER & DEMO PANELS (Active student shown as "YOU", other 4 as fleet students)
+    // 1. Render Active User (YOU) with prominent Blue Marker
+    const isYouInHazard = this.isLocationInHazard(this.userLat, this.userLng);
+    const activeColor = isYouInHazard ? '#ef4444' : '#3b82f6';
+
+    const userHtml = `
+      <div style="position:relative;">
+        <div style="background:${activeColor}; width:28px; height:28px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 16px ${activeColor}; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; font-weight:bold;">
+          📍
+        </div>
+        <div style="position:absolute; top:-26px; left:-42px; background:rgba(15,23,42,0.95); color:#fff; font-size:11px; font-weight:800; padding:2px 8px; border-radius:12px; border:2px solid ${activeColor}; white-space:nowrap; box-shadow:0 4px 6px rgba(0,0,0,0.5);">
+          YOU: ${this.userName.split(' ')[0]} ${isYouInHazard ? '🚨' : '🟢'}
+        </div>
+      </div>
+    `;
+
+    const userIcon = L.divIcon({
+      html: userHtml,
+      className: 'active-user-pin',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+
+    if (this.userMarker) {
+      this.userMarker.setLatLng([this.userLat, this.userLng]);
+      this.userMarker.setIcon(userIcon);
+    } else {
+      this.userMarker = L.marker([this.userLat, this.userLng], {
+        icon: userIcon,
+        draggable: true,
+        zIndexOffset: 2000
+      }).addTo(this.map);
+
+      this.userMarker.on('dragend', (e) => {
+        const pos = e.target.getLatLng();
+        this.setUserLocation(pos.lat, pos.lng);
+      });
+    }
+
+    // 2. Render OTHER Students simultaneously
+    this.students.forEach(student => {
+      if (student.email === this.userEmail) return;
+
+      const isStudentInDanger = this.isLocationInHazard(student.lat, student.lng);
+      const studentColor = isStudentInDanger ? '#ef4444' : '#10b981';
+
+      const otherHtml = `
+        <div style="position:relative; cursor:pointer;" onclick="window.safePathApp.switchActiveUser('${student.email}')">
+          <div style="background:#1e293b; width:22px; height:22px; border-radius:50%; border:2px solid ${studentColor}; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; box-shadow:0 2px 6px rgba(0,0,0,0.5);">
+            👤
+          </div>
+          <div style="position:absolute; top:-22px; left:-30px; background:rgba(30,41,59,0.9); color:#e2e8f0; font-size:10px; font-weight:700; padding:1px 6px; border-radius:8px; border:1px solid ${studentColor}; white-space:nowrap;">
+            ${student.name.split(' ')[0]} ${isStudentInDanger ? '🚨' : ''}
+          </div>
+        </div>
+      `;
+
+      const otherIcon = L.divIcon({
+        html: otherHtml,
+        className: 'other-student-pin',
+        iconSize: [22, 22],
+        iconAnchor: [11, 11]
+      });
+
+      const marker = L.marker([student.lat, student.lng], { icon: otherIcon, zIndexOffset: 500 }).addTo(this.map);
+      marker.bindPopup(`
+        <strong>🧑 ${student.name}</strong><br/>
+        Status: <strong>${isStudentInDanger ? '🚨 IN HAZARD' : '🟢 SAFE'}</strong><br/>
+        <button style="margin-top:6px; padding:4px 8px; font-size:11px; cursor:pointer; background:#3b82f6; color:#fff; border:none; border-radius:4px;" onclick="window.safePathApp.switchActiveUser('${student.email}')">
+          Switch to ${student.name}
+        </button>
+      `);
+
+      this.otherStudentMarkers.set(student.email, marker);
+    });
+
+    // 3. Render Safe Zone Icons ONLY if an emergency is active!
+    this.renderSafeZoneMarkers();
+  }
+
+  renderSafeZoneMarkers() {
+    // Clear old safe zones
+    for (const [id, marker] of this.safeZoneMarkers.entries()) {
+      this.map.removeLayer(marker);
+    }
+    this.safeZoneMarkers.clear();
+
+    // If NO emergency alert is active, do not clutter the map with giant safe haven markers
+    if (this.activeAlerts.length === 0 && this.role !== 'admin') {
+      return;
+    }
+
+    if (!this.campusData?.safeZones) return;
+
+    this.campusData.safeZones.forEach(zone => {
+      const isCompromised = this.isLocationInHazard(zone.lat, zone.lng, 25);
+
+      if (isCompromised) {
+        // Safe Zone is inside the danger zone! Mark as COMPROMISED - DO NOT ENTER!
+        const compHtml = `
+          <div style="background:#ef4444; color:#fff; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 0 10px rgba(239,68,68,0.8); font-size:13px; opacity:0.9;">
+            ⚠️
+          </div>
+        `;
+        const compIcon = L.divIcon({
+          html: compHtml,
+          className: 'compromised-zone-icon',
+          iconSize: [26, 26],
+          iconAnchor: [13, 13]
+        });
+
+        const marker = L.marker([zone.lat, zone.lng], { icon: compIcon }).addTo(this.map);
+        marker.bindPopup(`<strong>⚠️ COMPROMISED: ${zone.name}</strong><br/><span style="color:#ef4444; font-weight:700;">INSIDE RED HAZARD ZONE - DO NOT EVACUATE HERE</span>`);
+        this.safeZoneMarkers.set(zone.id, marker);
+        return;
+      }
+
+      // Valid, uncompromised safe haven!
+      const iconHtml = `
+        <div style="background:#10b981; color:#fff; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 0 12px rgba(16,185,129,0.9); font-size:15px;">
+          🛡️
+        </div>
+      `;
+      const customIcon = L.divIcon({
+        html: iconHtml,
+        className: 'safe-zone-icon',
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      });
+
+      const marker = L.marker([zone.lat, zone.lng], { icon: customIcon }).addTo(this.map);
+      marker.bindPopup(`<strong>🛡️ SAFE HAVEN: ${zone.name}</strong><br/><span style="color:#10b981; font-weight:700;">🟢 ALL CLEAR - SAFE FOR EVACUATION</span><br/>Capacity: ${zone.capacity} persons`);
+      this.safeZoneMarkers.set(zone.id, marker);
+    });
+  }
+
+  // --- SWITCH STUDENT: JUMPS POSITION ON MAP & RE-EVALUATES ROUTE ---
+  switchActiveUser(email) {
+    const student = this.students.find(s => s.email === email);
+    if (!student) return;
+
+    // Save previous active student position
+    const prev = this.students.find(s => s.email === this.userEmail);
+    if (prev) {
+      prev.lat = this.userLat;
+      prev.lng = this.userLng;
+    }
+
+    // Set new active student & JUMP LOCATION
+    this.userEmail = student.email;
+    this.userName = student.name;
+    this.userLat = student.lat;
+    this.userLng = student.lng;
+    localStorage.setItem('safepath_user_email', student.email);
+
+    // Pan map to new user
+    if (this.map) {
+      this.map.panTo([this.userLat, this.userLng]);
+    }
+
+    // Update active button styling
+    document.querySelectorAll('.student-chip').forEach(btn => {
+      if (btn.dataset.email === student.email) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    this.renderAllStudentsOnMap();
+    this.computeSafeRoute();
+    this.syncLocationToServer(this.userLat, this.userLng);
+  }
+
+  // --- LOCATION CHANGING ---
+  setUserLocation(lat, lng, dist, mins, targetHaven) {
+    this.userLat = lat;
+    this.userLng = lng;
+
+    const currentStudent = this.students.find(s => s.email === this.userEmail);
+    if (currentStudent) {
+      currentStudent.lat = lat;
+      currentStudent.lng = lng;
+      if (dist !== undefined) currentStudent.distanceMeters = dist;
+      if (mins !== undefined) currentStudent.estMinutes = mins;
+      if (targetHaven !== undefined) currentStudent.targetHaven = targetHaven;
+    }
+
+    if (this.userMarker) {
+      this.userMarker.setLatLng([this.userLat, this.userLng]);
+    }
+
+    this.renderAllStudentsOnMap();
+    this.computeSafeRoute();
+    this.syncLocationToServer(lat, lng, dist, mins, targetHaven);
+  }
+
+  async syncLocationForEmail(email, name, lat, lng, distanceMeters, estMinutes, targetHaven) {
+    try {
+      const payload = {
+        email: email,
+        name: name,
+        latitude: lat,
+        longitude: lng
+      };
+      if (distanceMeters !== undefined) payload.distanceMeters = distanceMeters;
+      if (estMinutes !== undefined) payload.estMinutes = estMinutes;
+      if (targetHaven !== undefined) payload.targetHaven = targetHaven;
+
+      await fetch('/api/users/location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {}
+  }
+
+  async syncLocationToServer(lat, lng, dist, mins, targetHaven) {
+    if (dist === undefined || mins === undefined) {
+      if (this.activeAlerts && this.activeAlerts.length > 0) {
+        const route = this.calculateSafeRoute(lat, lng);
+        if (route) {
+          dist = Math.round(route.totalDistMeters);
+          mins = route.estMinutes;
+          targetHaven = route.bestSafe ? (route.bestSafe.name || route.bestSafe.id) : undefined;
+        }
+      }
+    }
+    return this.syncLocationForEmail(this.userEmail, this.userName, lat, lng, dist, mins, targetHaven);
+  }
+
+  teleportToBuilding(bId) {
+    const coords = {
+      'B1': { lat: 33.8813, lng: -117.8854, name: 'Pollak Library' },
+      'B2': { lat: 33.8802, lng: -117.8858, name: 'Science Hall' },
+      'B3': { lat: 33.8820, lng: -117.8885, name: 'Student Union' },
+      'B4': { lat: 33.8829, lng: -117.8828, name: 'Engineering Quad' },
+      'B5': { lat: 33.8865, lng: -117.8845, name: 'Residence Halls' },
+      'B6': { lat: 33.8845, lng: -117.8890, name: 'Titan Stadium' }
+    };
+    const c = coords[bId];
+    if (c) {
+      this.setUserLocation(c.lat, c.lng);
+      this.map.panTo([c.lat, c.lng]);
+    }
+  }
+
+  isLocationInHazard(lat, lng, bufferMeters = 0) {
+    for (const alert of this.activeAlerts) {
+      if (!alert.active) continue;
+      const d = this.calculateDistanceMeters(lat, lng, alert.latitude, alert.longitude);
+      if (d <= alert.radiusMeters + bufferMeters) return true;
+    }
+    return false;
+  }
+
+  // --- GENERAL SAFE ROUTE CALCULATOR (Used for active user and all 5 fleet students) ---
+  calculateSafeRoute(fromLat, fromLng) {
+    if (!this.campusData || !this.campusData.walkwayNodes) return null;
+
+    // 1. Identify start node nearest to coordinates
+    let startNode = null;
+    let minStartDist = Infinity;
+    this.campusData.walkwayNodes.forEach(node => {
+      const d = this.calculateDistanceMeters(fromLat, fromLng, node.lat, node.lng);
+      if (d < minStartDist) {
+        minStartDist = d;
+        startNode = node;
+      }
+    });
+
+    if (!startNode) return null;
+
+    // 2. Build graph with hazard avoidance penalties (RED HAZARD ZONE AVOIDANCE)
+    const nodeMap = new Map();
+    this.campusData.walkwayNodes.forEach(n => nodeMap.set(n.id, n));
+
+    const graph = new Map();
+    this.campusData.walkwayNodes.forEach(n => graph.set(n.id, []));
+
+    this.campusData.walkwayEdges.forEach(edge => {
+      if (this.accessibilityMode && edge.hasStairs) return;
+
+      const nodeA = nodeMap.get(edge.from);
+      const nodeB = nodeMap.get(edge.to);
+      if (!nodeA || !nodeB) return;
+
+      const baseDist = this.calculateDistanceMeters(nodeA.lat, nodeA.lng, nodeB.lat, nodeB.lng);
+      let hazardWeight = 0;
+
+      for (const alert of this.activeAlerts) {
+        if (!alert.active) continue;
+        const distA = this.calculateDistanceMeters(nodeA.lat, nodeA.lng, alert.latitude, alert.longitude);
+        const distB = this.calculateDistanceMeters(nodeB.lat, nodeB.lng, alert.latitude, alert.longitude);
+        const midLat = (nodeA.lat + nodeB.lat) / 2;
+        const midLng = (nodeA.lng + nodeB.lng) / 2;
+        const distMid = this.calculateDistanceMeters(midLat, midLng, alert.latitude, alert.longitude);
+
+        if (distA < alert.radiusMeters || distB < alert.radiusMeters || distMid < alert.radiusMeters) {
+          hazardWeight += 500000; // Impassable through hazard!
+        } else if (distMid < alert.radiusMeters + 80) {
+          hazardWeight += 4000;
+        }
+      }
+
+      graph.get(edge.from).push({ to: edge.to, weight: baseDist + hazardWeight, node: nodeB });
+      graph.get(edge.to).push({ to: edge.from, weight: baseDist + hazardWeight, node: nodeA });
+    });
+
+    // 3. Define target Safe Havens and STRICTLY filter out any that are inside the red danger zone!
+    const allSafeHavens = [
+      { id: 'SZ1', name: 'North Quad Assembly Field (SZ1)', lat: 33.8842, lng: -117.8855, nodeId: 'N6' },
+      { id: 'SZ2', name: 'East Perimeter Gate & Triage (SZ2)', lat: 33.8825, lng: -117.8805, nodeId: 'N13' },
+      { id: 'SZ3', name: 'West Stadium Pavilion (SZ3)', lat: 33.8850, lng: -117.8895, nodeId: 'N10' },
+      { id: 'SZ4', name: 'South Gate Egress (SZ4)', lat: 33.8785, lng: -117.8850, nodeId: 'N16' }
+    ];
+
+    let safeZoneTargets = allSafeHavens.filter(sz => !this.isLocationInHazard(sz.lat, sz.lng, 35));
+
+    // Fallback: If a massive catastrophe covers all standard havens, use outer regional havens
+    if (safeZoneTargets.length === 0) {
+      safeZoneTargets = [
+        { id: 'SZ-EXT', name: 'East Municipal Egress (SZ-EXT)', lat: 33.8825, lng: -117.8760, nodeId: 'N13' },
+        { id: 'SZ-EXT', name: 'South Regional Safe Center (SZ-EXT)', lat: 33.8745, lng: -117.8850, nodeId: 'N16' },
+        { id: 'SZ-EXT', name: 'North Regional Assembly (SZ-EXT)', lat: 33.8885, lng: -117.8855, nodeId: 'N6' }
+      ].filter(sz => !this.isLocationInHazard(sz.lat, sz.lng, 10));
+    }
+
+    if (safeZoneTargets.length === 0) {
+      safeZoneTargets = [allSafeHavens[0]];
+    }
+
+    // CHECK IF ALREADY STANDING AT AN UNCOMPROMISED SAFE HAVEN!
+    for (const sz of safeZoneTargets) {
+      const d = this.calculateDistanceMeters(fromLat, fromLng, sz.lat, sz.lng);
+      if (d <= 35) {
+        return {
+          startNode: null,
+          bestSafe: sz,
+          routeCoords: [[fromLat, fromLng], [sz.lat, sz.lng]],
+          fineSteps: [],
+          totalDistMeters: 0,
+          estMinutes: 0,
+          arrived: true
+        };
+      }
+    }
+
+    // 4. Dijkstra Shortest Path from startNode
+    const distances = new Map();
+    const previous = new Map();
+    const unvisited = new Set();
+
+    this.campusData.walkwayNodes.forEach(n => {
+      distances.set(n.id, Infinity);
+      unvisited.add(n.id);
+    });
+    distances.set(startNode.id, 0);
+
+    while (unvisited.size > 0) {
+      let currentId = null;
+      let minDistance = Infinity;
+      for (const id of unvisited) {
+        if (distances.get(id) < minDistance) {
+          minDistance = distances.get(id);
+          currentId = id;
+        }
+      }
+
+      if (currentId === null || minDistance === Infinity) break;
+      unvisited.delete(currentId);
+
+      const neighbors = graph.get(currentId) || [];
+      for (const edge of neighbors) {
+        if (unvisited.has(edge.to)) {
+          const alt = distances.get(currentId) + edge.weight;
+          if (alt < distances.get(edge.to)) {
+            distances.set(edge.to, alt);
+            previous.set(edge.to, currentId);
+          }
+        }
+      }
+    }
+
+    // 5. Select closest reachable safe zone (MUST be 100% outside danger zone)
+    let bestSafe = null;
+    let minWeight = Infinity;
+    safeZoneTargets.forEach(sz => {
+      const weight = distances.get(sz.nodeId || sz.id);
+      if (weight !== undefined && weight < minWeight) {
+        minWeight = weight;
+        bestSafe = sz;
+      }
+    });
+
+    if (!bestSafe && safeZoneTargets.length > 0) {
+      bestSafe = safeZoneTargets[0];
+    }
+
+    if (!bestSafe) return null;
+
+    // 6. Reconstruct sequence of path nodes
+    const pathNodes = [];
+    let curr = bestSafe.nodeId || bestSafe.id;
+    while (curr) {
+      const nodeObj = nodeMap.get(curr);
+      if (nodeObj) pathNodes.unshift(nodeObj);
+      curr = previous.get(curr);
+    }
+
+    const routeCoords = [
+      [fromLat, fromLng],
+      ...pathNodes.map(n => [n.lat, n.lng]),
+      [bestSafe.lat, bestSafe.lng]
+    ];
+
+    // 7. Calculate total walking distance & walking time
+    let totalDistMeters = 0;
+    for (let i = 0; i < routeCoords.length - 1; i++) {
+      totalDistMeters += this.calculateDistanceMeters(
+        routeCoords[i][0], routeCoords[i][1],
+        routeCoords[i + 1][0], routeCoords[i + 1][1]
+      );
+    }
+
+    if (totalDistMeters <= 30) {
+      totalDistMeters = 0;
+    }
+
+    const walkSpeed = this.accessibilityMode ? 0.85 : 1.2;
+    const estMinutes = totalDistMeters === 0 ? 0 : Math.max(1, Math.round(totalDistMeters / walkSpeed / 60));
+
+    // 8. Generate smooth fine-grained step waypoints (~18 meters each)
+    const fineSteps = [];
+    for (let i = 0; i < routeCoords.length - 1; i++) {
+      const p1 = routeCoords[i];
+      const p2 = routeCoords[i + 1];
+      const dist = this.calculateDistanceMeters(p1[0], p1[1], p2[0], p2[1]);
+      const steps = Math.max(1, Math.round(dist / 18));
+      for (let s = 1; s <= steps; s++) {
+        const frac = s / steps;
+        fineSteps.push({
+          lat: p1[0] + (p2[0] - p1[0]) * frac,
+          lng: p1[1] + (p2[1] - p1[1]) * frac
+        });
+      }
+    }
+
+    return {
+      startNode,
+      bestSafe,
+      routeCoords,
+      fineSteps,
+      totalDistMeters,
+      estMinutes,
+      arrived: totalDistMeters === 0
+    };
+  }
+
+  // --- SAFE ROUTE & STATUS ENGINE ---
+  computeSafeRoute() {
+    const container = document.getElementById('evacuation-display-box');
+
+    // CASE 1: NO EMERGENCY IS HAPPENING (NORMAL STATE)
+    if (this.activeAlerts.length === 0) {
+      if (this.activeRoutePolyline && this.map) {
+        this.map.removeLayer(this.activeRoutePolyline);
+        this.activeRoutePolyline = null;
+      }
+      this.dismissAlertNotification();
+
+      if (container) {
+        container.className = 'evacuation-card';
+        container.style.border = '1px solid #374151';
+        container.style.background = 'var(--bg-surface)';
+        container.style.boxShadow = 'none';
+        container.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 1.5rem;">🟢</span>
+              <div>
+                <div style="font-size: 1.05rem; font-weight: 800; color: #fff;">Campus Status: All Clear</div>
+                <div style="font-size: 0.82rem; color: #9ca3af;">No active emergencies reported. You are in a safe zone.</div>
+              </div>
+            </div>
+            <span class="badge badge-success" style="font-size: 0.85rem; padding: 5px 12px;">🟢 NORMAL</span>
+          </div>
+        `;
+      }
+      return;
+    }
+
+    // CASE 2: AN EMERGENCY IS IN PROGRESS!
+    const activeAlert = this.activeAlerts[0];
+    this.triggerNotification(activeAlert);
+    const distToCenter = this.calculateDistanceMeters(this.userLat, this.userLng, activeAlert.latitude, activeAlert.longitude);
+    const inHazard = (distToCenter <= activeAlert.radiusMeters);
+
+    const routeInfo = this.calculateSafeRoute(this.userLat, this.userLng);
+    if (!routeInfo || !this.map) return;
+
+    const { bestSafe, routeCoords, totalDistMeters, estMinutes, arrived } = routeInfo;
+    this.currentRouteWaypoints = routeCoords;
+    this.currentBestSafe = bestSafe;
+
+    // If arrived at Safe Haven
+    if (arrived || totalDistMeters <= 25) {
+      if (this.activeRoutePolyline) {
+        this.map.removeLayer(this.activeRoutePolyline);
+        this.activeRoutePolyline = null;
+      }
+      if (container) {
+        container.className = 'evacuation-card';
+        container.style.border = '2px solid #10b981';
+        container.style.background = 'rgba(16, 185, 129, 0.15)';
+        container.innerHTML = `
+          <div class="evac-header">
+            <div class="evac-title-wrap">
+              <span class="evac-icon">🛡️</span>
+              <div>
+                <div class="evac-label" style="color: #34d399;">SAFELY ARRIVED AT EVACUATION HAVEN</div>
+                <div class="evac-dest-name">${bestSafe.name}</div>
+              </div>
+            </div>
+            <div>
+              <span class="badge badge-success" style="font-size:0.9rem; padding:6px 14px;">🟢 SAFE AT HAVEN</span>
+            </div>
+          </div>
+          <div class="evac-stats-row">
+            <div class="stat-item">
+              <span class="stat-name">HAVEN:</span>
+              <span style="color:#34d399; font-weight:700;">${bestSafe.name}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-name">DISTANCE:</span>
+              <span class="stat-bold" style="color:#10b981;">0 meters</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-name">EST. TIME:</span>
+              <span class="stat-bold" style="color:#10b981;">Arrived 🛡️</span>
+            </div>
+            <div class="stat-item" style="margin-left: auto;">
+              <span style="color:#34d399; font-size:0.8rem; font-weight:600;">Completely outside hazard zone</span>
+            </div>
+          </div>
+        `;
+      }
+      return;
+    }
+
+    // Draw the Green Safe Route Line on Map
+    if (this.activeRoutePolyline) {
+      this.map.removeLayer(this.activeRoutePolyline);
+    }
+
+    this.activeRoutePolyline = L.polyline(routeCoords, {
+      color: '#10b981',
+      weight: 6,
+      opacity: 0.95,
+      dashArray: '8, 8',
+      lineCap: 'round'
+    }).addTo(this.map);
+
+    // Update the DIRECT Safe Route Display Box
+    if (container) {
+      container.className = `evacuation-card ${inHazard ? 'in-hazard' : ''}`;
+      container.style.border = inHazard ? '2px solid #ef4444' : '2px solid #10b981';
+      container.style.background = inHazard ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.12)';
+
+      container.innerHTML = `
+        <div class="evac-header">
+          <div class="evac-title-wrap">
+            <span class="evac-icon">${inHazard ? '🚨' : '🛡️'}</span>
+            <div>
+              <div class="evac-label" style="color: ${inHazard ? '#f87171' : '#34d399'};">
+                ${inHazard ? `🚨 DANGER: INSIDE ${activeAlert.name.toUpperCase()} ZONE!` : 'RECOMMENDED SAFE EVACUATION DESTINATION'}
+              </div>
+              <div class="evac-dest-name">
+                ${bestSafe.name}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <span class="badge ${inHazard ? 'badge-danger' : 'badge-success'}" style="font-size:0.9rem; padding:6px 14px;">
+              ${inHazard ? '🚨 EVACUATE IMMEDIATELY' : '🟢 PROCEED TO HAVEN'}
+            </span>
+          </div>
+        </div>
+
+        <div class="evac-stats-row">
+          <div class="stat-item">
+            <span class="stat-name">NEAREST HAVEN:</span>
+            <span style="color:#34d399; font-weight:700;">${bestSafe.name}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-name">DISTANCE:</span>
+            <span class="stat-bold">${Math.round(totalDistMeters)} meters</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-name">EST. TIME:</span>
+            <span class="stat-bold">~${estMinutes} min</span>
+          </div>
+          <div class="stat-item" style="margin-left: auto;">
+            <span style="color:#cbd5e1; font-size:0.8rem; font-weight:600;">Follow green dashed route</span>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // --- AUDIO ALARM & NOTIFICATION SYSTEM ---
+  playAlarmSound() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sawtooth';
+
+      const now = ctx.currentTime;
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(440, now + 0.25);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.5);
+      osc.frequency.exponentialRampToValueAtTime(440, now + 0.75);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 1.0);
+
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 1.2);
+
+      osc.start(now);
+      osc.stop(now + 1.2);
+    } catch (e) {}
+  }
+
+  triggerNotification(alert) {
+    if (!alert) return;
+    if (this.lastNotifiedAlertId === alert.id) return;
+    this.lastNotifiedAlertId = alert.id;
+
+    // Audible alarm
+    this.playAlarmSound();
+
+    // Render prominent notification banner
+    const notifyContainer = document.getElementById('user-alert-notification-area');
+    if (notifyContainer) {
+      notifyContainer.innerHTML = `
+        <div id="active-alert-toast" class="emergency-notification-banner">
+          <div class="notification-icon-pulse">${alert.icon || '🚨'}</div>
+          <div class="notification-details">
+            <div class="notification-title">
+              🚨 EMERGENCY ALERT: ${alert.title || alert.name}
+            </div>
+            <div class="notification-body">
+              ${alert.instructions || 'Emergency active. Evacuate immediately via designated safe pathways.'}
+            </div>
+            <div style="font-size: 0.75rem; color: #fca5a5; margin-top: 4px; font-weight: 700;">
+              SEVERITY: ${alert.severity || 'CRITICAL'} • GEOFENCE RADIUS: ${alert.radiusMeters}m • STATUS: SAFE ROUTE ACTIVE
+            </div>
+          </div>
+          <div class="notification-actions">
+            <button class="notification-dismiss-btn" onclick="document.getElementById('active-alert-toast')?.remove()">
+              ✕ Dismiss
+            </button>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  dismissAlertNotification() {
+    this.lastNotifiedAlertId = null;
+    const toast = document.getElementById('active-alert-toast');
+    if (toast) toast.remove();
+    const notifyContainer = document.getElementById('user-alert-notification-area');
+    if (notifyContainer) notifyContainer.innerHTML = '';
+  }
+
+  // --- AUTOMATIC POLLING FALLBACK (Every 2 seconds to guarantee 100% real-time sync) ---
+  startPollingFallback() {
+    if (this.pollInterval) clearInterval(this.pollInterval);
+    this.pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/alerts');
+        if (!res.ok) return;
+        const data = await res.json();
+        const incomingAlerts = data.active || [];
+
+        const currentIds = this.activeAlerts.map(a => a.id).sort().join(',');
+        const incomingIds = incomingAlerts.map(a => a.id).sort().join(',');
+
+        if (currentIds !== incomingIds) {
+          const hadNoAlerts = this.activeAlerts.length === 0;
+          this.activeAlerts = incomingAlerts;
+          this.renderActiveAlertCircles();
+          this.renderAllStudentsOnMap();
+          this.computeSafeRoute();
+          this.refreshAdminAlertsTable();
+
+          if (incomingAlerts.length > 0 && hadNoAlerts) {
+            this.triggerNotification(incomingAlerts[0]);
+          } else if (incomingAlerts.length === 0) {
+            this.dismissAlertNotification();
+          }
+        }
+
+        if (this.role === 'admin' || this.role === 'demo') {
+          await this.loadAdminFleet();
+          this.updateAdminTelemetry();
+        } else {
+          await this.syncFleetFromServer();
+          this.renderAllStudentsOnMap();
+        }
+      } catch (e) {}
+    }, 2000);
+  }
+
+  // --- ADMIN BROADCAST & RESOLVE METHODS (Required by admin.html and demo.html) ---
+  async broadcastAdminAlert(formData) {
+    try {
+      const res = await fetch('/api/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      const data = await res.json();
+      return data;
+    } catch (e) {
+      console.error('Failed to broadcast alert:', e);
+      throw e;
+    }
+  }
+
+  async resolveAdminAlert(alertId) {
+    try {
+      const res = await fetch(`/api/alerts/${alertId}`, { method: 'DELETE' });
+      const data = await res.json();
+      const idx = this.activeAlerts.findIndex(a => a.id === alertId);
+      if (idx !== -1) this.activeAlerts.splice(idx, 1);
+      this.renderActiveAlertCircles();
+      this.renderAllStudentsOnMap();
+      this.computeSafeRoute();
+      if (this.activeAlerts.length === 0) {
+        this.dismissAlertNotification();
+      }
+      this.refreshAdminAlertsTable();
+      return data;
+    } catch (e) {
+      console.error('Failed to resolve alert:', e);
+      throw e;
+    }
+  }
+
+  async clearAllAdminAlerts() {
+    try {
+      let res = await fetch('/api/alerts', { method: 'DELETE' });
+      if (!res.ok) {
+        res = await fetch('/api/alerts/clear', { method: 'POST' });
+      }
+      const data = await res.json();
+      this.activeAlerts = [];
+      this.renderActiveAlertCircles();
+      this.renderAllStudentsOnMap();
+      this.computeSafeRoute();
+      this.dismissAlertNotification();
+      this.refreshAdminAlertsTable();
+      return data;
+    } catch (e) {
+      console.error('Failed to clear all alerts:', e);
+      throw e;
+    }
+  }
+
+  async loadAdminFleet() {
+    try {
+      if (!this.campusData) {
+        await this.loadCampusData();
+      }
+      const res = await fetch('/api/users');
+      const data = await res.json();
+      const tbody = document.getElementById('admin-fleet-tbody');
+      const connectedCount = document.getElementById('admin-connected-count');
+      if (connectedCount && data.users) {
+        connectedCount.textContent = `${data.users.length} Active`;
+        // Sync this.students on admin panel with true server coordinates!
+        data.users.forEach(u => {
+          const st = this.students.find(s => s.email === u.email);
+          if (st) {
+            st.lat = parseFloat(u.latitude);
+            st.lng = parseFloat(u.longitude);
+            st.status = u.status;
+            st.distanceMeters = u.distanceMeters;
+            st.estMinutes = u.estMinutes;
+            st.targetHaven = u.targetHaven;
+          }
+        });
+        if (this.role === 'admin') {
+          this.renderAllStudentsOnMap();
+        }
+      }
+      if (tbody && data.users) {
+        tbody.innerHTML = data.users.map(u => {
+          let dist = u.distanceMeters;
+          let mins = u.estMinutes;
+          let targetHaven = u.targetHaven;
+
+          let distDisplay = '<span style="color:#10b981; font-size:0.85rem; font-weight:600;">Campus Clear</span>';
+          let timeDisplay = '<span style="color:#10b981; font-size:0.85rem; font-weight:600;">🟢 Normal</span>';
+
+          if (this.activeAlerts.length > 0) {
+            if (dist === undefined || mins === undefined) {
+              const route = this.calculateSafeRoute(parseFloat(u.latitude), parseFloat(u.longitude));
+              if (route && route.bestSafe) {
+                dist = Math.round(route.totalDistMeters);
+                mins = route.estMinutes;
+                targetHaven = route.bestSafe.name || route.bestSafe.id;
+              }
+            }
+
+            if (dist !== undefined && mins !== undefined) {
+              if (dist <= 25 || mins === 0) {
+                distDisplay = `<span style="color:#10b981; font-weight:700;">0 meters</span><br/><span style="font-size:11px; color:#34d399;">(Safe Zone)</span>`;
+                timeDisplay = `<span class="badge badge-success" style="font-size:11px; padding:3px 8px;">🛡️ Safe Haven</span>`;
+              } else {
+                const distColor = u.status === 'IN HAZARD' ? '#f87171' : '#34d399';
+                distDisplay = `<strong style="color:${distColor};">${dist} meters</strong><br/><span style="color:#9ca3af; font-size:11px;">to ${targetHaven || 'Safe Zone'}</span>`;
+                const timeColor = u.status === 'IN HAZARD' ? '#ef4444' : '#38bdf8';
+                timeDisplay = `<strong style="color:${timeColor}; font-size:0.95rem;">~${mins} min</strong><br/><span style="color:#9ca3af; font-size:11px;">(safe egress pace)</span>`;
+              }
+            }
+          }
+
+          return `
+            <tr>
+              <td><strong>${u.name}</strong><br/><span style="color:#9ca3af; font-size:11px;">${u.email}</span></td>
+              <td><code>${parseFloat(u.latitude).toFixed(4)}, ${parseFloat(u.longitude).toFixed(4)}</code></td>
+              <td>
+                <span class="badge ${u.status === 'IN HAZARD' ? 'badge-danger' : (u.status === 'PROXIMITY WARNING' ? 'badge-warning' : 'badge-success')}">
+                  ${u.status}
+                </span>
+              </td>
+              <td>${distDisplay}</td>
+              <td>${timeDisplay}</td>
+              <td>${u.batteryLevel}%</td>
+              <td>${u.networkState}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    } catch (e) {}
+  }
+
+  async resetFleetLocations() {
+    try {
+      const res = await fetch('/api/users/reset', { method: 'POST' });
+      const data = await res.json();
+      await this.syncFleetFromServer();
+      this.renderAllStudentsOnMap();
+      this.computeSafeRoute();
+      if (this.role === 'admin' || this.role === 'demo') {
+        await this.loadAdminFleet();
+      }
+      return data;
+    } catch (e) {
+      console.error('Failed to reset fleet:', e);
+      throw e;
+    }
+  }
+
+  updateAdminTelemetry() {
+    const activeMetric = document.getElementById('admin-active-count');
+    if (activeMetric) {
+      activeMetric.textContent = `${this.activeAlerts.length} Active`;
+      activeMetric.style.color = this.activeAlerts.length > 0 ? '#ef4444' : '#10b981';
+    }
+    const badge = document.getElementById('active-badge-count');
+    if (badge) {
+      badge.textContent = this.activeAlerts.length;
+    }
+  }
+
+  refreshAdminAlertsTable() {
+    this.updateAdminTelemetry();
+    const container = document.getElementById('admin-active-alerts-list');
+    if (!container) return;
+
+    if (this.activeAlerts.length === 0) {
+      container.innerHTML = `<p style="color:#9ca3af; font-size:0.85rem; padding:8px;">No active emergency alerts. Campus is secure.</p>`;
+      return;
+    }
+
+    container.innerHTML = this.activeAlerts.map(alert => `
+      <div style="background:var(--bg-card); border-left:4px solid ${alert.color}; padding:8px 12px; border-radius:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-weight:700; font-size:0.88rem; color:${alert.color};">
+            ${alert.icon} ${alert.title || alert.name}
+          </div>
+          <div style="font-size:0.75rem; color:#9ca3af;">
+            Radius: <strong>${alert.radiusMeters}m</strong> | Center: <code>${alert.latitude.toFixed(4)}, ${alert.longitude.toFixed(4)}</code>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="width:auto; padding:4px 8px; font-size:0.75rem;" onclick="window.safePathApp.resolveAdminAlert('${alert.id}').then(() => { window.safePathApp.refreshActiveAlerts(); window.safePathApp.loadAdminFleet(); })">
+          Resolve
+        </button>
+      </div>
+    `).join('');
+  }
+
+  // --- SSE ALERT BROADCAST LISTENER ---
+  connectSSE() {
+    try {
+      const eventSource = new EventSource('/api/events');
+
+      eventSource.addEventListener('init', (e) => {
+        const data = JSON.parse(e.data);
+        this.activeAlerts = data.activeAlerts || [];
+        this.renderActiveAlertCircles();
+        this.renderAllStudentsOnMap();
+        this.computeSafeRoute();
+        this.updateAdminTelemetry();
+        if (this.role === 'admin' || this.role === 'demo') {
+          this.loadAdminFleet();
+        }
+        if (this.activeAlerts.length > 0) {
+          this.triggerNotification(this.activeAlerts[0]);
+        }
+      });
+
+      eventSource.addEventListener('alert_broadcast', (e) => {
+        const data = JSON.parse(e.data);
+        this.activeAlerts.unshift(data.alert);
+        this.renderActiveAlertCircles();
+        this.renderAllStudentsOnMap();
+        this.computeSafeRoute();
+        this.triggerNotification(data.alert);
+        this.refreshAdminAlertsTable();
+        this.updateAdminTelemetry();
+        if (this.role === 'admin' || this.role === 'demo') {
+          this.loadAdminFleet();
+        }
+      });
+
+      eventSource.addEventListener('alert_resolved', (e) => {
+        const data = JSON.parse(e.data);
+        const idx = this.activeAlerts.findIndex(a => a.id === data.alertId);
+        if (idx !== -1) this.activeAlerts.splice(idx, 1);
+        this.renderActiveAlertCircles();
+        this.renderAllStudentsOnMap();
+        this.computeSafeRoute();
+        if (this.activeAlerts.length === 0) {
+          this.dismissAlertNotification();
+        }
+        this.refreshAdminAlertsTable();
+        this.updateAdminTelemetry();
+        if (this.role === 'admin' || this.role === 'demo') {
+          this.loadAdminFleet();
+        }
+      });
+
+      eventSource.addEventListener('alert_cleared', (e) => {
+        this.activeAlerts = [];
+        this.renderActiveAlertCircles();
+        this.renderAllStudentsOnMap();
+        this.computeSafeRoute();
+        this.dismissAlertNotification();
+        this.refreshAdminAlertsTable();
+        this.updateAdminTelemetry();
+        if (this.role === 'admin' || this.role === 'demo') {
+          this.loadAdminFleet();
+        }
+      });
+
+      // REAL-TIME STUDENT GPS LOCATION UPDATES
+      eventSource.addEventListener('user_location_update', (e) => {
+        const u = JSON.parse(e.data);
+        const st = this.students.find(s => s.email === u.email);
+        if (st) {
+          st.lat = parseFloat(u.latitude);
+          st.lng = parseFloat(u.longitude);
+          st.status = u.status;
+          if (u.distanceMeters !== undefined) st.distanceMeters = u.distanceMeters;
+          if (u.estMinutes !== undefined) st.estMinutes = u.estMinutes;
+          if (u.targetHaven !== undefined) st.targetHaven = u.targetHaven;
+        }
+        if (this.role === 'user' && this.userEmail === u.email) {
+          this.userLat = parseFloat(u.latitude);
+          this.userLng = parseFloat(u.longitude);
+        }
+        this.renderAllStudentsOnMap();
+        if (this.role === 'admin' || this.role === 'demo') {
+          this.loadAdminFleet();
+        }
+      });
+    } catch (err) {}
+  }
+
+  renderActiveAlertCircles() {
+    for (const [id, circle] of this.hazardCircles.entries()) {
+      this.map.removeLayer(circle);
+    }
+    this.hazardCircles.clear();
+
+    this.activeAlerts.forEach(alert => {
+      if (!alert.active) return;
+
+      // DANGER ZONE ALWAYS USES RED COLOR (#dc2626 / #ef4444) AND NEVER GREEN
+      const circle = L.circle([alert.latitude, alert.longitude], {
+        radius: alert.radiusMeters,
+        color: '#dc2626',
+        fillColor: '#ef4444',
+        fillOpacity: 0.35,
+        weight: 3
+      }).addTo(this.map);
+
+      circle.bindPopup(`<strong>${alert.icon} ${alert.name}</strong><br/><span style="color:#ef4444; font-weight:700;">🚨 DANGER ZONE</span><br/>Radius: ${alert.radiusMeters}m`);
+      this.hazardCircles.set(alert.id, circle);
+    });
+  }
+
+  async refreshActiveAlerts() {
+    try {
+      const res = await fetch('/api/alerts');
+      const data = await res.json();
+      const hadNoAlerts = this.activeAlerts.length === 0;
+      this.activeAlerts = data.active || [];
+      this.renderActiveAlertCircles();
+      this.renderAllStudentsOnMap();
+      this.computeSafeRoute();
+      if (this.activeAlerts.length > 0 && hadNoAlerts) {
+        this.triggerNotification(this.activeAlerts[0]);
+      } else if (this.activeAlerts.length === 0) {
+        this.dismissAlertNotification();
+      }
+      this.refreshAdminAlertsTable();
+    } catch (e) {}
+  }
+
+  toggleAccessibility(enabled) {
+    this.accessibilityMode = enabled;
+    this.computeSafeRoute();
+  }
+
+  // --- MOVE ACTIVE USER TO NEAREST SAFE ZONE ---
+  toggleMoveToSafeZone() {
+    const btn = document.getElementById('btn-evacuate-move') || document.getElementById('btn-walk-sim');
+
+    // If currently moving, stop
+    if (this.moveInterval) {
+      clearInterval(this.moveInterval);
+      this.moveInterval = null;
+      if (btn) btn.textContent = '🏃 Move to Nearest Safe Zone';
+      return;
+    }
+
+    if (this.activeAlerts.length === 0) {
+      alert('Campus status is All Clear! No active emergency evacuation required.');
+      return;
+    }
+
+    // Stop fleet evacuation if active
+    if (this.moveAllInterval) {
+      clearInterval(this.moveAllInterval);
+      this.moveAllInterval = null;
+      const allBtn = document.getElementById('btn-evacuate-all');
+      if (allBtn) allBtn.textContent = '👥 Move All to Safe Zones';
+    }
+
+    const routeInfo = this.calculateSafeRoute(this.userLat, this.userLng);
+    if (!routeInfo || !routeInfo.fineSteps || routeInfo.fineSteps.length === 0) {
+      if (routeInfo && routeInfo.arrived) {
+        alert(`You are already at ${routeInfo.bestSafe.name}. You are in a safe zone.`);
+      } else {
+        alert('Please wait, computing safe path to haven...');
+      }
+      return;
+    }
+
+    const waypoints = routeInfo.fineSteps;
+    const bestSafe = routeInfo.bestSafe;
+    let currentStep = 0;
+    if (btn) btn.textContent = '⏹️ Stop Moving';
+
+    this.moveInterval = setInterval(() => {
+      if (currentStep >= waypoints.length) {
+        clearInterval(this.moveInterval);
+        this.moveInterval = null;
+        if (btn) btn.textContent = '🏃 Move to Nearest Safe Zone';
+        const havenName = bestSafe?.name || 'Safe Haven';
+        this.setUserLocation(bestSafe.lat, bestSafe.lng, 0, 0, havenName);
+        this.computeSafeRoute();
+        alert(`🎉 SAFELY ARRIVED! You have reached ${havenName}. You are completely outside the hazard zone.`);
+        return;
+      }
+
+      const pt = waypoints[currentStep];
+      currentStep++;
+
+      // Compute remaining distance & walking time as student advances
+      let remainingMeters = 0;
+      for (let k = currentStep; k < waypoints.length - 1; k++) {
+        remainingMeters += this.calculateDistanceMeters(
+          waypoints[k].lat, waypoints[k].lng,
+          waypoints[k + 1].lat, waypoints[k + 1].lng
+        );
+      }
+      if (bestSafe && waypoints.length > 0) {
+        remainingMeters += this.calculateDistanceMeters(
+          waypoints[waypoints.length - 1].lat, waypoints[waypoints.length - 1].lng,
+          bestSafe.lat, bestSafe.lng
+        );
+      }
+      const walkSpeed = this.accessibilityMode ? 0.85 : 1.2;
+      const remainingMinutes = remainingMeters <= 25 ? 0 : Math.max(1, Math.round(remainingMeters / walkSpeed / 60));
+
+      this.setUserLocation(
+        pt.lat,
+        pt.lng,
+        Math.round(remainingMeters),
+        remainingMinutes,
+        bestSafe?.name || bestSafe?.id
+      );
+    }, 600);
+  }
+
+  // --- MOVE ALL STUDENTS CONCURRENTLY TO NEAREST SAFE ZONES ---
+  toggleMoveAllToSafeZones() {
+    const btn = document.getElementById('btn-evacuate-all');
+
+    if (this.moveAllInterval) {
+      clearInterval(this.moveAllInterval);
+      this.moveAllInterval = null;
+      if (btn) btn.textContent = '👥 Move All to Safe Zones';
+      return;
+    }
+
+    if (this.activeAlerts.length === 0) {
+      alert('Campus status is All Clear! No active emergency evacuation required.');
+      return;
+    }
+
+    // Stop single user move if running
+    if (this.moveInterval) {
+      clearInterval(this.moveInterval);
+      this.moveInterval = null;
+      const singleBtn = document.getElementById('btn-evacuate-move');
+      if (singleBtn) singleBtn.textContent = '🏃 Move to Nearest Safe Zone';
+    }
+
+    // Calculate individual evacuation paths for all 5 students
+    const plans = [];
+    for (const student of this.students) {
+      const routeInfo = this.calculateSafeRoute(student.lat, student.lng);
+      if (routeInfo && routeInfo.fineSteps && routeInfo.fineSteps.length > 0) {
+        plans.push({
+          student,
+          steps: routeInfo.fineSteps,
+          stepIndex: 0,
+          bestSafe: routeInfo.bestSafe,
+          completed: false
+        });
+      } else if (routeInfo && routeInfo.arrived) {
+        plans.push({
+          student,
+          steps: [],
+          stepIndex: 0,
+          bestSafe: routeInfo.bestSafe,
+          completed: true
+        });
+      }
+    }
+
+    if (plans.length === 0) {
+      alert('Unable to calculate evacuation paths for students.');
+      return;
+    }
+
+    if (btn) btn.textContent = '⏹️ Stop Evacuating All';
+
+    this.moveAllInterval = setInterval(() => {
+      let anyRemaining = false;
+
+      for (const plan of plans) {
+        if (plan.completed) continue;
+
+        if (plan.stepIndex < plan.steps.length) {
+          anyRemaining = true;
+          const nextPt = plan.steps[plan.stepIndex];
+          plan.student.lat = nextPt.lat;
+          plan.student.lng = nextPt.lng;
+          plan.stepIndex++;
+
+          // Compute remaining distance & walking time as student advances
+          let remainingMeters = 0;
+          for (let k = plan.stepIndex; k < plan.steps.length - 1; k++) {
+            remainingMeters += this.calculateDistanceMeters(
+              plan.steps[k].lat, plan.steps[k].lng,
+              plan.steps[k + 1].lat, plan.steps[k + 1].lng
+            );
+          }
+          if (plan.bestSafe && plan.steps.length > 0) {
+            remainingMeters += this.calculateDistanceMeters(
+              plan.steps[plan.steps.length - 1].lat, plan.steps[plan.steps.length - 1].lng,
+              plan.bestSafe.lat, plan.bestSafe.lng
+            );
+          }
+
+          const walkSpeed = this.accessibilityMode ? 0.85 : 1.2;
+          const remainingMinutes = remainingMeters <= 25 ? 0 : Math.max(1, Math.round(remainingMeters / walkSpeed / 60));
+
+          plan.student.distanceMeters = Math.round(remainingMeters);
+          plan.student.estMinutes = remainingMinutes;
+          plan.student.targetHaven = plan.bestSafe.name || plan.bestSafe.id;
+
+          // If this is the active user on user panel, update active user location variables
+          if (this.role === 'user' && plan.student.email === this.userEmail) {
+            this.userLat = nextPt.lat;
+            this.userLng = nextPt.lng;
+            if (this.userMarker) {
+              this.userMarker.setLatLng([this.userLat, this.userLng]);
+            }
+          }
+
+          // Sync student location to server so Admin fleet table and SSE pings update live with DECREASING distance and time!
+          this.syncLocationForEmail(
+            plan.student.email,
+            plan.student.name,
+            nextPt.lat,
+            nextPt.lng,
+            plan.student.distanceMeters,
+            plan.student.estMinutes,
+            plan.student.targetHaven
+          );
+        } else {
+          plan.completed = true;
+          plan.student.distanceMeters = 0;
+          plan.student.estMinutes = 0;
+          const safeLat = plan.bestSafe ? plan.bestSafe.lat : plan.student.lat;
+          const safeLng = plan.bestSafe ? plan.bestSafe.lng : plan.student.lng;
+          plan.student.lat = safeLat;
+          plan.student.lng = safeLng;
+          if (this.role === 'user' && plan.student.email === this.userEmail) {
+            this.userLat = safeLat;
+            this.userLng = safeLng;
+            if (this.userMarker) {
+              this.userMarker.setLatLng([this.userLat, this.userLng]);
+            }
+          }
+          this.syncLocationForEmail(
+            plan.student.email,
+            plan.student.name,
+            safeLat,
+            safeLng,
+            0,
+            0,
+            plan.bestSafe?.name || plan.bestSafe?.id
+          );
+        }
+      }
+
+      this.renderAllStudentsOnMap();
+      this.computeSafeRoute();
+
+      if (!anyRemaining) {
+        clearInterval(this.moveAllInterval);
+        this.moveAllInterval = null;
+        if (btn) btn.textContent = '👥 Move All to Safe Zones';
+        alert('🎉 ALL STUDENTS SAFELY EVACUATED! All 5 students have safely reached designated safe havens outside the hazard zone.');
+      }
+    }, 600);
+  }
+
+  toggleWalkSimulation() {
+    return this.toggleMoveToSafeZone();
+  }
+
+  // Haversine
+  calculateDistanceMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371e3;
+    const phi1 = (lat1 * Math.PI) / 180;
+    const phi2 = (lat2 * Math.PI) / 180;
+    const dPhi = ((lat2 - lat1) * Math.PI) / 180;
+    const dLambda = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dPhi / 2) * Math.sin(dPhi / 2) +
+      Math.cos(phi1) * Math.cos(phi2) *
+      Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+  }
+}
+
+window.SafePathEngine = SafePathEngine;

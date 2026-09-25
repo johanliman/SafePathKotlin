@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">SafePath</string>
+    <string name="title_admin_command">Emergency Operations Center (Admin)</string>
+    <string name="title_student_app">SafePath Campus Emergency Evacuation</string>
+    <string name="broadcast_alert">Broadcast Emergency Alert</string>
+    <string name="resolve_alert">Resolve / Cancel Alert</string>
+    <string name="safe_route_title">Recommended Safe Route</string>
+    <string name="status_safe">Status: SAFE</string>
+    <string name="status_in_hazard">🚨 WARNING: IN HAZARD ZONE</string>
+    <string name="status_warning">⚠️ CAUTION: APPROACHING HAZARD</string>
+    <string name="accessibility_mode">Accessibility-Aware Route (Avoid Stairs)</string>
+</resources>
