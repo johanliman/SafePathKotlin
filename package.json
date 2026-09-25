@@ -1,0 +1,20 @@
+{
+  "name": "safepath-server",
+  "version": "1.0.0",
+  "description": "SafePath Emergency Alert & Evacuation Routing Server - CPSC 515 Mobile Computing",
+  "main": "web/server.js",
+  "scripts": {
+    "start": "node web/server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "emergency-alert",
+    "campus-safety",
+    "evacuation",
+    "cpsc515"
+  ],
+  "author": "SafePath Group",
+  "license": "ISC"
+}

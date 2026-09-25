@@ -13,7 +13,20 @@ import okhttp3.RequestBody.Companion.toRequestBody
  * SafePathApiClient - REST & SSE Network Manager for Android
  * CPSC 515 Mobile Computing
  */
-class SafePathApiClient(private val baseUrl: String = "http://10.0.2.2:3000") {
+class SafePathApiClient(private val baseUrl: String = DEFAULT_BASE_URL) {
+
+    companion object {
+        /**
+         * SERVER ENDPOINTS:
+         * - LOCAL_EMULATOR_URL: Local Node.js server via Android emulator loopback.
+         * - ONLINE_SERVER_URL: Set this to your live deployed cloud URL (e.g. Render / Railway).
+         */
+        const val LOCAL_EMULATOR_URL = "http://10.0.2.2:3000"
+        const val ONLINE_SERVER_URL = "https://safepath-server.onrender.com"
+
+        // Set this to ONLINE_SERVER_URL once you deploy to the cloud!
+        var DEFAULT_BASE_URL = LOCAL_EMULATOR_URL
+    }
 
     private val client = OkHttpClient.Builder().build()
     private val gson = Gson()

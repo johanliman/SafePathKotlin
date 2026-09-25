@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Gradle & Build
+.gradle/
+build/
+android/.gradle/
+android/app/build/
+server/build/
+*.hprof
+
+# IDE
+.idea/
+*.iml
+local.properties
+.kotlin/
+.system_generated/
