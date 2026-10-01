@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login & Registration | SafePath Emergency System</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .auth-wrapper {
+      max-width: 520px;
+      margin: 40px auto;
+      padding: 0 16px;
+      width: 100%;
+      flex: 1;
+    }
+    .auth-card {
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+      padding: 32px 28px;
+    }
+    .auth-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .auth-logo {
+      font-size: 2.8rem;
+      margin-bottom: 8px;
+    }
+    .auth-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+    }
+    .auth-subtitle {
+      font-size: 0.9rem;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    .auth-tabs {
+      display: flex;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 10px;
+      margin-bottom: 24px;
+      gap: 4px;
+    }
+    .auth-tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: #64748b;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .auth-tab-btn.active {
+      background: #ffffff;
+      color: #1e40af;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+    .form-control {
+      width: 100%;
+      padding: 11px 14px;
+      font-size: 0.95rem;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      background: #ffffff;
+      color: #0f172a;
+      transition: border-color 0.2s ease;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 13px;
+      font-size: 1rem;
+      font-weight: 800;
+      border-radius: 8px;
+      border: none;
+      background: #2563eb;
+      color: #ffffff;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .btn-submit:hover {
+      background: #1d4ed8;
+    }
+    .quick-logins {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid #e2e8f0;
+    }
+    .quick-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .quick-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .quick-chip {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.82rem;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .quick-chip:hover {
+      background: #eff6ff;
+      border-color: #93c5fd;
+      transform: translateY(-1px);
+    }
+    .quick-chip strong {
+      color: #1e3a8a;
+      font-size: 0.86rem;
+    }
+    .quick-chip span {
+      color: #64748b;
+      font-size: 0.72rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .alert-box {
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .alert-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+    }
+    .alert-success {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #16a34a;
+    }
+    .location-card {
+      background: #f8fafc;
+      border: 1.5px dashed #93c5fd;
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 12px;
+      margin-bottom: 14px;
+    }
+    .loc-btn {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      padding: 7px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Simple Navigation -->
+  <nav class="navbar">
+    <a href="/" class="brand">
+      🛡️ SafePath <span class="brand-badge" style="background:#2563eb;">Authentication</span>
+    </a>
+    <div class="nav-links">
+      <a href="/login.html" class="nav-btn active">🔑 Sign In / Register</a>
+      <a href="/demo.html" class="nav-btn">⚡ Split Demo</a>
+    </div>
+  </nav>
+
+  <div class="auth-wrapper">
+    <div class="auth-card">
+
+      <div class="auth-header">
+        <div class="auth-logo">🛡️</div>
+        <h1 class="auth-title">SafePath CSUF</h1>
+        <p class="auth-subtitle">Emergency Alert & Safe Evacuation Routing System</p>
+      </div>
+
+      <!-- Tab Switcher: Sign In vs Register -->
+      <div class="auth-tabs">
+        <button id="tab-btn-login" class="auth-tab-btn active" onclick="switchAuthTab('login')">
+          🔑 Sign In
+        </button>
+        <button id="tab-btn-register" class="auth-tab-btn" onclick="switchAuthTab('register')">
+          📝 Register New User
+        </button>
+      </div>
+
+      <!-- Feedback Banner -->
+      <div id="auth-alert" class="alert-box"></div>
+
+      <!-- 1. SIGN IN FORM -->
+      <form id="form-login" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label" for="login-email">Campus Email</label>
+          <input type="email" id="login-email" class="form-control" placeholder="user@csu.fullerton.edu" required autocomplete="username" value="johaliman@csu.fullerton.edu">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="login-password">Password</label>
+          <input type="password" id="login-password" class="form-control" placeholder="••••••••" required autocomplete="current-password" value="johanliman">
+        </div>
+        <button type="submit" id="btn-login-submit" class="btn-submit">
+          <span>Sign In to SafePath</span> ➔
+        </button>
+
+        <!-- 1-Click Fast Demo Credentials -->
+        <div class="quick-logins">
+          <div class="quick-title">⚡ 1-Click Fast Sign In (Admin & Students)</div>
+          <div class="quick-grid">
+            <button type="button" class="quick-chip" onclick="fillAndLogin('admin@safepath.com', 'admin')" style="border-color:#fca5a5; background:#fff5f5;">
+              <strong style="color:#dc2626;">🛡️ Admin</strong>
+              <span>admin@safepath.com</span>
+            </button>
+            <button type="button" class="quick-chip" onclick="fillAndLogin('johaliman@csu.fullerton.edu', 'johanliman')">
+              <strong>🧑 Johan</strong>
+              <span>johaliman@csu.fullerton.edu</span>
+            </button>
+            <button type="button" class="quick-chip" onclick="fillAndLogin('d.wu@csu.fullerton.edu', 'danielwu')">
+              <strong>🧑 Daniel</strong>
+              <span>d.wu@csu.fullerton.edu</span>
+            </button>
+            <button type="button" class="quick-chip" onclick="fillAndLogin('yu-cheng.chang@csu.fullerton.edu', 'yuchengchang')">
+              <strong>🧑 Yu</strong>
+              <span>yu-cheng.chang@csu.fullerton.edu</span>
+            </button>
+            <button type="button" class="quick-chip" onclick="fillAndLogin('jchen102951@csu.fullerton.edu', 'jiechen')">
+              <strong>🧑 Jie</strong>
+              <span>jchen102951@csu.fullerton.edu</span>
+            </button>
+            <button type="button" class="quick-chip" onclick="fillAndLogin('siling313@csu.fullerton.edu', 'siling')">
+              <strong>🧑 Siling</strong>
+              <span>siling313@csu.fullerton.edu</span>
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <!-- 2. REGISTER FORM -->
+      <form id="form-register" style="display:none;" onsubmit="handleRegister(event)">
+        <div class="form-group">
+          <label class="form-label" for="reg-name">Full Name</label>
+          <input type="text" id="reg-name" class="form-control" placeholder="e.g. Alex Titan" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="reg-email">Email Address</label>
+          <input type="email" id="reg-email" class="form-control" placeholder="alex@csu.fullerton.edu" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="reg-password">Password</label>
+          <input type="password" id="reg-password" class="form-control" placeholder="At least 3 characters" minlength="3" required>
+        </div>
+
+        <!-- Automatic Location Capture for New Users -->
+        <div class="location-card">
+          <div style="font-weight:700; color:#1e40af; font-size:0.85rem; display:flex; align-items:center; gap:6px;">
+            <span>📍 Initial Safety Location Capture</span>
+          </div>
+          <div style="font-size:0.78rem; color:#475569; margin-top:3px;">
+            SafePath acquires your position to calculate immediate evacuation routes if a hazard strikes your sector.
+          </div>
+          <div style="margin-top:8px; font-size:0.82rem; font-weight:600; color:#0f172a;" id="loc-status-text">
+            📍 Captured: <span id="loc-coords-preview">33.8820, -117.8850 (CSUF Campus Center)</span>
+          </div>
+          <input type="hidden" id="reg-lat" value="33.8820">
+          <input type="hidden" id="reg-lng" value="-117.8850">
+          <button type="button" class="loc-btn" onclick="detectGPSLocation()">
+            📡 Refresh / Detect GPS Coordinates
+          </button>
+        </div>
+
+        <button type="submit" id="btn-reg-submit" class="btn-submit" style="background:#16a34a;">
+          <span>Register & Enter SafePath</span> ➔
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <script>
+    function showAlert(msg, isError = true) {
+      const el = document.getElementById('auth-alert');
+      el.textContent = msg;
+      el.className = isError ? 'alert-box alert-error' : 'alert-box alert-success';
+      el.style.display = 'block';
+    }
+
+    function hideAlert() {
+      document.getElementById('auth-alert').style.display = 'none';
+    }
+
+    function switchAuthTab(tab) {
+      hideAlert();
+      const tabLogin = document.getElementById('tab-btn-login');
+      const tabReg = document.getElementById('tab-btn-register');
+      const formLogin = document.getElementById('form-login');
+      const formReg = document.getElementById('form-register');
+
+      if (tab === 'login') {
+        tabLogin.classList.add('active');
+        tabReg.classList.remove('active');
+        formLogin.style.display = 'block';
+        formReg.style.display = 'none';
+      } else {
+        tabReg.classList.add('active');
+        tabLogin.classList.remove('active');
+        formReg.style.display = 'block';
+        formLogin.style.display = 'none';
+        detectGPSLocation();
+      }
+    }
+
+    function fillAndLogin(email, password) {
+      document.getElementById('login-email').value = email;
+      document.getElementById('login-password').value = password;
+      handleLogin(new Event('submit'));
+    }
+
+    async function handleLogin(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      hideAlert();
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value.trim();
+      const btn = document.getElementById('btn-login-submit');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span>Verifying credentials...</span> ⏳';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          showAlert(data.error || 'Login failed. Please check your email and password.', true);
+          btn.disabled = false;
+          btn.innerHTML = '<span>Sign In to SafePath</span> ➔';
+          return;
+        }
+
+        // Store user state
+        localStorage.setItem('safepath_user', JSON.stringify(data.user));
+        localStorage.setItem('safepath_user_email', data.user.email);
+        localStorage.setItem('safepath_role', data.user.role);
+
+        showAlert(`Welcome back, ${data.user.name}! Redirecting...`, false);
+
+        setTimeout(() => {
+          if (data.user.role === 'Admin') {
+            window.location.href = '/admin.html';
+          } else {
+            window.location.href = '/user.html';
+          }
+        }, 500);
+
+      } catch (err) {
+        showAlert('Network error: ' + err.message, true);
+        btn.disabled = false;
+        btn.innerHTML = '<span>Sign In to SafePath</span> ➔';
+      }
+    }
+
+    function detectGPSLocation() {
+      const preview = document.getElementById('loc-coords-preview');
+      const latInp = document.getElementById('reg-lat');
+      const lngInp = document.getElementById('reg-lng');
+      if (!navigator.geolocation) {
+        preview.textContent = '33.8820, -117.8850 (Browser GPS unavailable - CSUF default)';
+        return;
+      }
+      preview.textContent = 'Detecting satellite GPS coordinates... 🛰️';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          latInp.value = lat.toFixed(5);
+          lngInp.value = lng.toFixed(5);
+          preview.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)} (±${Math.round(pos.coords.accuracy)}m)`;
+        },
+        (err) => {
+          // Fallback to Fullerton Campus coordinates
+          latInp.value = '33.8813';
+          lngInp.value = '-117.8854';
+          preview.textContent = '33.8813, -117.8854 (CSUF Pollak Quad)';
+        },
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    }
+
+    async function handleRegister(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      hideAlert();
+      const name = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value.trim();
+      const lat = parseFloat(document.getElementById('reg-lat').value) || 33.8820;
+      const lng = parseFloat(document.getElementById('reg-lng').value) || -117.8850;
+      const btn = document.getElementById('btn-reg-submit');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span>Creating account & saving location...</span> ⏳';
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password, latitude: lat, longitude: lng })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          showAlert(data.error || 'Registration failed.', true);
+          btn.disabled = false;
+          btn.innerHTML = '<span>Register & Enter SafePath</span> ➔';
+          return;
+        }
+
+        // Store user state
+        localStorage.setItem('safepath_user', JSON.stringify(data.user));
+        localStorage.setItem('safepath_user_email', data.user.email);
+        localStorage.setItem('safepath_role', data.user.role);
+
+        showAlert(`Account created successfully for ${data.user.name}! Redirecting...`, false);
+
+        setTimeout(() => {
+          if (data.user.role === 'Admin') {
+            window.location.href = '/admin.html';
+          } else {
+            window.location.href = '/user.html';
+          }
+        }, 600);
+
+      } catch (err) {
+        showAlert('Registration error: ' + err.message, true);
+        btn.disabled = false;
+        btn.innerHTML = '<span>Register & Enter SafePath</span> ➔';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -16,9 +16,14 @@
       🛡️ SafePath <span class="brand-badge" style="background:#dc2626;">🚨 Admin EOC Command</span>
     </a>
     <div class="nav-links">
+      <div id="admin-badge" style="background:#fee2e2; border:1px solid #fecaca; padding:5px 12px; border-radius:8px; font-size:0.85rem; color:#991b1b; font-weight:700; display:flex; align-items:center; gap:6px;">
+        <span>🛡️</span> <span>Campus Admin (admin@safepath.com)</span>
+      </div>
       <a href="/admin.html" class="nav-btn active" style="background:#dc2626; border-color:#dc2626; color:#ffffff;">🛡️ Admin Panel</a>
       <a href="/user.html" class="nav-btn" style="color: #2563eb; border-color: #93c5fd;">📱 Student Panel →</a>
-      <a href="/demo.html" class="nav-btn">⚡ Split Live Demo</a>
+      <button onclick="handleAdminLogout()" class="nav-btn" style="color:#dc2626; border-color:#fca5a5; font-weight:700; cursor:pointer;">
+        🚪 Sign Out
+      </button>
     </div>
   </nav>
 
@@ -390,10 +395,16 @@
         await adminApp.resolveAdminAlert(id);
         adminApp.refreshActiveAlerts();
         adminApp.loadAdminFleet();
-        alert('✅ Emergency alert removed.');
       } catch (err) {
         alert('Failed to remove alert: ' + err.message);
       }
+    }
+
+    function handleAdminLogout() {
+      localStorage.removeItem('safepath_user');
+      localStorage.removeItem('safepath_user_email');
+      localStorage.removeItem('safepath_role');
+      window.location.href = '/login.html';
     }
   </script>
 </body>

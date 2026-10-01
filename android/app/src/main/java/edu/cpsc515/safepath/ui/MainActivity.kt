@@ -100,7 +100,21 @@ class MainActivity : AppCompatActivity() {
     private var adminRadius: Double = 200.0
     private var isAdminMapLoaded: Boolean = false
 
-    // 5 Campus Students
+    companion object {
+        const val EXTRA_ROLE = "extra_role"
+        const val EXTRA_EMAIL = "extra_email"
+        const val EXTRA_NAME = "extra_name"
+        const val EXTRA_LAT = "extra_lat"
+        const val EXTRA_LNG = "extra_lng"
+    }
+
+    private var loggedRole: String = "Student"
+    private var loggedEmail: String = "johaliman@csu.fullerton.edu"
+    private var loggedName: String = "Johan"
+    private var loggedLat: Double = 33.8802
+    private var loggedLng: Double = -117.8858
+
+    // 5 Campus Students (Exact accounts requested)
     data class StudentState(
         val email: String,
         val name: String,
@@ -113,11 +127,11 @@ class MainActivity : AppCompatActivity() {
     )
 
     private val students = mutableListOf(
-        StudentState("daniel.wu@csu.fullerton.edu", "Daniel", 33.8813, -117.8854),
-        StudentState("johan.liman@csu.fullerton.edu", "Johan", 33.8802, -117.8858),
-        StudentState("jie.chen@csu.fullerton.edu", "Jie", 33.8829, -117.8828),
-        StudentState("yucheng.chang@csu.fullerton.edu", "Yu", 33.8820, -117.8885),
-        StudentState("siling.liu@csu.fullerton.edu", "Siling", 33.8835, -117.8870)
+        StudentState("johaliman@csu.fullerton.edu", "Johan", 33.8802, -117.8858),
+        StudentState("d.wu@csu.fullerton.edu", "Daniel", 33.8813, -117.8854),
+        StudentState("yu-cheng.chang@csu.fullerton.edu", "Yu", 33.8820, -117.8885),
+        StudentState("jchen102951@csu.fullerton.edu", "Jie", 33.8829, -117.8828),
+        StudentState("siling313@csu.fullerton.edu", "Siling", 33.8835, -117.8870)
     )
 
     private val alertCategoryList = listOf(
@@ -167,13 +181,41 @@ class MainActivity : AppCompatActivity() {
         initCampusData()
         pathfinder = SafeRoutePathfinder(walkwayNodes, walkwayEdges, safeZones)
 
+        loggedRole = intent.getStringExtra(EXTRA_ROLE) ?: "Student"
+        loggedEmail = intent.getStringExtra(EXTRA_EMAIL) ?: "johaliman@csu.fullerton.edu"
+        loggedName = intent.getStringExtra(EXTRA_NAME) ?: "Johan"
+        loggedLat = intent.getDoubleExtra(EXTRA_LAT, 33.8802)
+        loggedLng = intent.getDoubleExtra(EXTRA_LNG, -117.8858)
+
+        val existingIndex = students.indexOfFirst { it.email.equals(loggedEmail, ignoreCase = true) }
+        if (existingIndex != -1) {
+            activeStudentIndex = existingIndex
+            students[existingIndex].lat = loggedLat
+            students[existingIndex].lng = loggedLng
+        } else {
+            val customStudent = StudentState(loggedEmail, loggedName, loggedLat, loggedLng)
+            students.add(0, customStudent)
+            activeStudentIndex = 0
+        }
+
         bindViews()
         setupListeners()
         setupSpinners()
         setupWebView()
         setupAdminWebView()
-        switchStudent(0)
-        selectTab(false)
+
+        if (loggedRole.equals("Admin", ignoreCase = true)) {
+            findViewById<View>(R.id.roleTabBar).visibility = View.GONE
+            findViewById<TextView>(R.id.tvAppName).text = "🛡️ SafePath Admin EOC"
+            selectTab(true)
+        } else {
+            findViewById<View>(R.id.roleTabBar).visibility = View.GONE
+            findViewById<View>(R.id.studentScroll).visibility = View.GONE
+            findViewById<View>(R.id.bannerStudentIdentity).visibility = View.VISIBLE
+            findViewById<TextView>(R.id.tvStudentIdentity).text = "🧑 Logged In: $loggedName ($loggedEmail)"
+            switchStudent(activeStudentIndex)
+            selectTab(false)
+        }
 
         checkPermissionsAndStartService()
         startMetricsMonitoring()
@@ -238,6 +280,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
+        findViewById<Button>(R.id.btnSignOut).setOnClickListener {
+            val intent = Intent(this, LoginActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+            finish()
+        }
+
+        findViewById<TextView>(R.id.tvGmapsToggleItinerary).setOnClickListener {
+            val steps = findViewById<TextView>(R.id.tvGmapsItinerarySteps)
+            if (steps.visibility == View.VISIBLE) {
+                steps.visibility = View.GONE
+                (it as TextView).text = "▼ Show Turn-by-Turn Guidance"
+            } else {
+                steps.visibility = View.VISIBLE
+                (it as TextView).text = "▲ Hide Turn-by-Turn Guidance"
+            }
+        }
+
         tabStudentPanel.setOnClickListener { selectTab(false) }
         tabAdminPanel.setOnClickListener { selectTab(true) }
 
@@ -563,11 +623,17 @@ class MainActivity : AppCompatActivity() {
         val active = students[activeStudentIndex]
         mapWebView.evaluateJavascript("updateUser('${active.name}', ${active.lat}, ${active.lng}, ${active.inHazard});", null)
 
-        val others = students.filterIndexed { i, _ -> i != activeStudentIndex }.map {
-            mapOf("email" to it.email, "name" to it.name, "lat" to it.lat, "lng" to it.lng, "inHazard" to it.inHazard)
+        // When logged in as student, only see their own name and location!
+        if (loggedRole.equals("Admin", ignoreCase = true)) {
+            val others = students.filterIndexed { i, _ -> i != activeStudentIndex }.map {
+                mapOf("email" to it.email, "name" to it.name, "lat" to it.lat, "lng" to it.lng, "inHazard" to it.inHazard)
+            }
+            val othersJson = Gson().toJson(others)
+            mapWebView.evaluateJavascript("setOtherStudents($othersJson);", null)
+        } else {
+            // Student role: Never show other students on the personal student map!
+            mapWebView.evaluateJavascript("setOtherStudents([]);", null)
         }
-        val othersJson = Gson().toJson(others)
-        mapWebView.evaluateJavascript("setOtherStudents($othersJson);", null)
 
         if (activeAlerts.isNotEmpty()) {
             val alert = activeAlerts[0]
@@ -619,6 +685,18 @@ class MainActivity : AppCompatActivity() {
         }
 
         val active = students[activeStudentIndex]
+
+        // Google Maps HUD Views
+        val barGmapsManeuver = findViewById<View>(R.id.barGmapsManeuver)
+        val tvGmapsManeuverIcon = findViewById<TextView>(R.id.tvGmapsManeuverIcon)
+        val tvGmapsPrimaryInstruction = findViewById<TextView>(R.id.tvGmapsPrimaryInstruction)
+        val tvGmapsSecondaryInstruction = findViewById<TextView>(R.id.tvGmapsSecondaryInstruction)
+        val tvGmapsStatusPill = findViewById<TextView>(R.id.tvGmapsStatusPill)
+        val tvGmapsEta = findViewById<TextView>(R.id.tvGmapsEta)
+        val tvGmapsDistance = findViewById<TextView>(R.id.tvGmapsDistance)
+        val tvGmapsHavenName = findViewById<TextView>(R.id.tvGmapsHavenName)
+        val tvGmapsItinerarySteps = findViewById<TextView>(R.id.tvGmapsItinerarySteps)
+
         if (active.inHazard && activeAlert != null) {
             tvSafetyBadge.text = "🚨 IN HAZARD"
             tvSafetyBadge.setTextColor(Color.parseColor("#DC2626"))
@@ -638,9 +716,27 @@ class MainActivity : AppCompatActivity() {
                     mapWebView.evaluateJavascript("setSafeRoute($coordsJson);", null)
                 }
 
-                tvSafeRouteInfo.text = "🛡️ ${route.destinationSafeZone.name}\n" +
-                        "Distance: ${route.totalDistanceMeters.toInt()}m | Est. Time: ~${route.estimatedTimeMinutes} min"
+                val totalD = route.totalDistanceMeters.toInt()
+                val estM = route.estimatedTimeMinutes
+                val haven = route.destinationSafeZone.name
+
+                tvSafeRouteInfo.text = "🛡️ $haven\nDistance: ${totalD}m | Est. Time: ~${estM} min"
                 tvSafeRouteInfo.setTextColor(Color.parseColor("#DC2626"))
+
+                // Update Google Maps HUD
+                barGmapsManeuver?.setBackgroundColor(Color.parseColor("#DC2626"))
+                tvGmapsManeuverIcon?.text = "🏃"
+                tvGmapsPrimaryInstruction?.text = "EVACUATE: Head toward $haven"
+                tvGmapsSecondaryInstruction?.text = "Active ${activeAlert.type.displayName} hazard. Follow green route."
+                tvGmapsStatusPill?.text = "🚨 EVACUATE"
+                tvGmapsEta?.text = "⏱️ ~$estM min"
+                tvGmapsEta?.setTextColor(Color.parseColor("#DC2626"))
+                tvGmapsDistance?.text = " (${totalD} m)"
+                tvGmapsHavenName?.text = "🛡️ $haven"
+                tvGmapsItinerarySteps?.text = "1. Depart current coordinates immediately away from hazard\n" +
+                        "2. Walk ~${(totalD * 0.4).toInt()}m along CSUF Pedestrian Walkway\n" +
+                        "3. Turn slight right toward designated safe perimeter (~${(totalD * 0.6).toInt()}m)\n" +
+                        "4. Arrive at Safe Haven: $haven (Assembly & Triage)"
             }
         } else {
             tvSafetyBadge.text = "SAFE"
@@ -652,6 +748,18 @@ class MainActivity : AppCompatActivity() {
             if (::mapWebView.isInitialized && isMapLoaded) {
                 mapWebView.evaluateJavascript("clearSafeRoute();", null)
             }
+
+            // Google Maps HUD Safe State
+            barGmapsManeuver?.setBackgroundColor(Color.parseColor("#15803D"))
+            tvGmapsManeuverIcon?.text = "🟢"
+            tvGmapsPrimaryInstruction?.text = "Campus Status: All Clear"
+            tvGmapsSecondaryInstruction?.text = "Pedestrian walkways operating normally. No active emergencies."
+            tvGmapsStatusPill?.text = "ALL CLEAR"
+            tvGmapsEta?.text = "⏱️ Safe"
+            tvGmapsEta?.setTextColor(Color.parseColor("#15803D"))
+            tvGmapsDistance?.text = " (Safe Zone)"
+            tvGmapsHavenName?.text = "🛡️ CSUF Safe Campus"
+            tvGmapsItinerarySteps?.text = "1. Current location is outside all hazard zones."
         }
 
         refreshMapDisplay()

@@ -39,7 +39,19 @@
             android:text="SAFE"
             android:textColor="#16A34A"
             android:textSize="12sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:layout_marginEnd="6dp" />
+
+        <Button
+            android:id="@+id/btnSignOut"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="🚪 Sign Out"
+            android:textColor="#DC2626"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:paddingHorizontal="4dp" />
     </LinearLayout>
 
     <View
@@ -240,6 +252,170 @@
             android:layout_height="1dp"
             android:background="#E2E8F0" />
 
+        <!-- Student Identity Banner (Shown when student logs in) -->
+        <LinearLayout
+            android:id="@+id/bannerStudentIdentity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#EFF6FF"
+            android:padding="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvStudentIdentity"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="🧑 Logged In: Johan (johaliman@csu.fullerton.edu)"
+                android:textColor="#1E40AF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="STUDENT VIEW"
+                android:textColor="#FFFFFF"
+                android:background="#2563EB"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- GOOGLE MAPS-STYLE NAVIGATION CARD -->
+        <LinearLayout
+            android:id="@+id/cardGmapsNavigation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#FFFFFF"
+            android:elevation="2dp"
+            android:layout_margin="6dp">
+
+            <!-- Green / Red Top Maneuver Bar -->
+            <LinearLayout
+                android:id="@+id/barGmapsManeuver"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:background="#15803D"
+                android:padding="8dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvGmapsManeuverIcon"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
+                    android:text="⬆️"
+                    android:textSize="18sp"
+                    android:gravity="center"
+                    android:background="#33FFFFFF" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="8dp">
+
+                    <TextView
+                        android:id="@+id/tvGmapsPrimaryInstruction"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Follow Titan Walkway to Safe Haven"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvGmapsSecondaryInstruction"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Pedestrian evacuation route active"
+                        android:textColor="#E2E8F0"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvGmapsStatusPill"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ALL CLEAR"
+                    android:textColor="#FFFFFF"
+                    android:background="#33000000"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="3dp"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- ETA, Distance & Haven -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="6dp"
+                android:gravity="center_vertical"
+                android:background="#F8FAFC">
+
+                <TextView
+                    android:id="@+id/tvGmapsEta"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⏱️ ~2 min"
+                    android:textColor="#15803D"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvGmapsDistance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" (140 m)"
+                    android:textColor="#64748B"
+                    android:textSize="11sp"
+                    android:layout_marginEnd="6dp" />
+
+                <TextView
+                    android:id="@+id/tvGmapsHavenName"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="🛡️ North Quad (SZ1)"
+                    android:textColor="#1E40AF"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:gravity="end" />
+            </LinearLayout>
+
+            <!-- Toggleable Turn-by-Turn Guidance Steps -->
+            <TextView
+                android:id="@+id/tvGmapsToggleItinerary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="▼ Show Turn-by-Turn Guidance"
+                android:textColor="#2563EB"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:paddingVertical="4dp"
+                android:gravity="center"
+                android:background="#FFFFFF" />
+
+            <TextView
+                android:id="@+id/tvGmapsItinerarySteps"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="1. Depart current location away from danger\n2. Follow green dashed route on walkway\n3. Arrive at designated campus assembly haven"
+                android:textColor="#334155"
+                android:textSize="11sp"
+                android:padding="6dp"
+                android:background="#F8FAFC"
+                android:visibility="gone" />
+        </LinearLayout>
+
         <!-- Emergency Warning Alert Banner (Appears on hazard detection) -->
         <LinearLayout
             android:id="@+id/layoutEmergencyBanner"
@@ -247,7 +423,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:background="#DC2626"
-            android:padding="10dp"
+            android:padding="8dp"
             android:visibility="gone">
 
             <TextView
@@ -256,7 +432,7 @@
                 android:layout_height="wrap_content"
                 android:text="🚨 DANGER: IN HAZARD ZONE"
                 android:textColor="#FFFFFF"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:textStyle="bold" />
 
             <TextView

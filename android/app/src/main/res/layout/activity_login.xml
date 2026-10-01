@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp"
+        android:gravity="center_horizontal">
+
+        <!-- Logo & Header -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🛡️"
+            android:textSize="54sp"
+            android:layout_marginTop="20dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SafePath CSUF"
+            android:textColor="#0F172A"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginTop="6dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Emergency Alert &amp; Safe Evacuation System"
+            android:textColor="#64748B"
+            android:textSize="13sp"
+            android:layout_marginTop="2dp" />
+
+        <!-- Tab Switcher: Sign In vs Register -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:orientation="horizontal"
+            android:background="#F1F5F9"
+            android:padding="3dp"
+            android:layout_marginTop="24dp">
+
+            <Button
+                android:id="@+id/tabSignIn"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="🔑 Sign In"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#2563EB"
+                app:cornerRadius="8dp" />
+
+            <Button
+                android:id="@+id/tabRegister"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="📝 Register New User"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="#475569"
+                android:backgroundTint="#F1F5F9"
+                app:cornerRadius="8dp" />
+        </LinearLayout>
+
+        <!-- Status Message Banner -->
+        <TextView
+            android:id="@+id/tvAuthStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#FEF2F2"
+            android:textColor="#DC2626"
+            android:padding="10dp"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            android:layout_marginTop="14dp" />
+
+        <ProgressBar
+            android:id="@+id/progressBarAuth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:layout_marginTop="14dp" />
+
+        <!-- ==================== SIGN IN CONTAINER ==================== -->
+        <LinearLayout
+            android:id="@+id/layoutSignInContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="14dp"
+            android:visibility="visible">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Campus Email"
+                android:textColor="#334155"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/etLoginEmail"
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:background="@drawable/input_field_light"
+                android:hint="user@csu.fullerton.edu"
+                android:textColor="#0F172A"
+                android:textColorHint="#94A3B8"
+                android:paddingHorizontal="14dp"
+                android:inputType="textEmailAddress"
+                android:text="johaliman@csu.fullerton.edu"
+                android:textSize="14sp"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Password"
+                android:textColor="#334155"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/etLoginPassword"
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:background="@drawable/input_field_light"
+                android:hint="••••••••"
+                android:textColor="#0F172A"
+                android:textColorHint="#94A3B8"
+                android:paddingHorizontal="14dp"
+                android:inputType="textPassword"
+                android:text="johanliman"
+                android:textSize="14sp"
+                android:layout_marginBottom="16dp" />
+
+            <Button
+                android:id="@+id/btnLoginSubmit"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="Sign In to SafePath ➔"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:backgroundTint="#2563EB"
+                app:cornerRadius="8dp" />
+
+            <!-- Quick 1-Click Fast Credentials -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⚡ 1-CLICK FAST SIGN IN"
+                android:textColor="#64748B"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="10dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <Button
+                    android:id="@+id/btnQuickAdmin"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:text="🛡️ Admin"
+                    android:textColor="#DC2626"
+                    android:textSize="11sp"
+                    app:strokeColor="#FCA5A5"
+                    app:cornerRadius="6dp" />
+
+                <Button
+                    android:id="@+id/btnQuickJohan"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="4dp"
+                    android:text="🧑 Johan"
+                    android:textColor="#2563EB"
+                    android:textSize="11sp"
+                    app:strokeColor="#93C5FD"
+                    app:cornerRadius="6dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <Button
+                    android:id="@+id/btnQuickDaniel"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:text="🧑 Daniel"
+                    android:textColor="#475569"
+                    android:textSize="11sp"
+                    app:strokeColor="#CBD5E1"
+                    app:cornerRadius="6dp" />
+
+                <Button
+                    android:id="@+id/btnQuickYu"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="4dp"
+                    android:text="🧑 Yu"
+                    android:textColor="#475569"
+                    android:textSize="11sp"
+                    app:strokeColor="#CBD5E1"
+                    app:cornerRadius="6dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnQuickJie"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:text="🧑 Jie"
+                    android:textColor="#475569"
+                    android:textSize="11sp"
+                    app:strokeColor="#CBD5E1"
+                    app:cornerRadius="6dp" />
+
+                <Button
+                    android:id="@+id/btnQuickSiling"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="4dp"
+                    android:text="🧑 Siling"
+                    android:textColor="#475569"
+                    android:textSize="11sp"
+                    app:strokeColor="#CBD5E1"
+                    app:cornerRadius="6dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ==================== REGISTER CONTAINER ==================== -->
+        <LinearLayout
+            android:id="@+id/layoutRegisterContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="14dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Full Name"
+                android:textColor="#334155"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/etRegName"
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:background="@drawable/input_field_light"
+                android:hint="e.g. Alex Titan"
+                android:textColor="#0F172A"
+                android:textColorHint="#94A3B8"
+                android:paddingHorizontal="14dp"
+                android:inputType="textPersonName"
+                android:textSize="14sp"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Email Address"
+                android:textColor="#334155"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/etRegEmail"
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:background="@drawable/input_field_light"
+                android:hint="alex@csu.fullerton.edu"
+                android:textColor="#0F172A"
+                android:textColorHint="#94A3B8"
+                android:paddingHorizontal="14dp"
+                android:inputType="textEmailAddress"
+                android:textSize="14sp"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Password"
+                android:textColor="#334155"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/etRegPassword"
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:background="@drawable/input_field_light"
+                android:hint="At least 3 characters"
+                android:textColor="#0F172A"
+                android:textColorHint="#94A3B8"
+                android:paddingHorizontal="14dp"
+                android:inputType="textPassword"
+                android:textSize="14sp"
+                android:layout_marginBottom="14dp" />
+
+            <!-- Location Detection Box -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#F8FAFC"
+                android:padding="12dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📍 Initial Safety Location Capture"
+                    android:textColor="#1E40AF"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SafePath detects your current coordinates to plan immediate evacuation safe paths."
+                    android:textColor="#64748B"
+                    android:textSize="11sp"
+                    android:layout_marginTop="2dp" />
+
+                <TextView
+                    android:id="@+id/tvDetectedLocation"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📍 33.8820, -117.8850 (CSUF Campus Center)"
+                    android:textColor="#0F172A"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="6dp" />
+
+                <Button
+                    android:id="@+id/btnDetectGps"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="📡 Refresh GPS Coordinates"
+                    android:textColor="#2563EB"
+                    android:textSize="11sp"
+                    android:layout_marginTop="8dp"
+                    app:strokeColor="#93C5FD"
+                    app:cornerRadius="6dp" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnRegSubmit"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="Register &amp; Enter SafePath ➔"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:backgroundTint="#16A34A"
+                app:cornerRadius="8dp" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

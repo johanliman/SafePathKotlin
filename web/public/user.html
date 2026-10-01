@@ -3,96 +3,233 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Navigation & Evacuation | SafePath</title>
+  <title>Student Safe Navigation | SafePath</title>
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/leaflet.css" />
   <script src="/leaflet.js"></script>
+  <style>
+    /* Google Maps Navigation Style Components */
+    .gmaps-nav-card {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+    }
+    .gmaps-nav-header {
+      background: #15803d;
+      color: #ffffff;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .gmaps-nav-header.hazard {
+      background: #dc2626;
+    }
+    .gmaps-maneuver-icon {
+      font-size: 2.2rem;
+      background: rgba(255,255,255,0.2);
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .gmaps-instruction-wrap {
+      flex: 1;
+    }
+    .gmaps-instruction-primary {
+      font-size: 1.15rem;
+      font-weight: 800;
+      line-height: 1.3;
+    }
+    .gmaps-instruction-secondary {
+      font-size: 0.85rem;
+      opacity: 0.92;
+      margin-top: 2px;
+    }
+    .gmaps-stats-bar {
+      background: #f8fafc;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .gmaps-eta-badge {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #15803d;
+    }
+    .gmaps-eta-badge.hazard {
+      color: #dc2626;
+    }
+    .gmaps-dist-badge {
+      font-size: 0.95rem;
+      color: #475569;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+    .gmaps-destination-badge {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #1e40af;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
+    .itinerary-toggle {
+      background: none;
+      border: none;
+      color: #2563eb;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0;
+    }
+    .itinerary-steps {
+      padding: 12px 18px;
+      background: #ffffff;
+      display: none;
+    }
+    .itinerary-step {
+      display: flex;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.88rem;
+    }
+    .itinerary-step:last-child {
+      border-bottom: none;
+    }
+    .itinerary-step-icon {
+      font-size: 1.1rem;
+      width: 24px;
+      text-align: center;
+    }
+    .itinerary-step-text {
+      flex: 1;
+      color: #1e293b;
+    }
+    .itinerary-step-dist {
+      color: #64748b;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+  </style>
 </head>
 <body>
 
-  <!-- Top Navigation Bar -->
+  <!-- Top Navigation Bar with User Badge & Logout -->
   <nav class="navbar">
     <a href="/" class="brand">
-      🛡️ SafePath <span class="brand-badge" style="background:#2563eb;">📱 Student Panel</span>
+      🛡️ SafePath <span class="brand-badge" style="background:#2563eb;">📱 Student View</span>
     </a>
     <div class="nav-links">
-      <a href="/user.html" class="nav-btn active">📱 Student View</a>
-      <a href="/admin.html" class="nav-btn" style="color: #dc2626; border-color: #fca5a5;">🛡️ Admin View →</a>
-      <a href="/demo.html" class="nav-btn">⚡ Split Demo</a>
+      <div id="user-badge" style="background:#eff6ff; border:1px solid #bfdbfe; padding:5px 12px; border-radius:8px; font-size:0.85rem; color:#1e40af; font-weight:700; display:flex; align-items:center; gap:6px;">
+        <span>👤</span> <span id="user-name-display">Student</span>
+      </div>
+      <button onclick="handleLogout()" class="nav-btn" style="color:#dc2626; border-color:#fca5a5; font-weight:700; cursor:pointer;">
+        🚪 Sign Out
+      </button>
+      <a href="/login.html" class="nav-btn">Switch Account</a>
     </div>
   </nav>
 
   <div class="container" style="max-width: 1200px;">
     
-    <!-- Distinct Role Distinction Banner for Student View -->
-    <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 12px; padding: 14px 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <!-- Student Header Banner -->
+    <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 14px 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
       <div>
-        <div style="font-size: 1.15rem; font-weight: 800; color: #1e40af; display: flex; align-items: center; gap: 10px;">
-          <span>📱 STUDENT SAFE ROUTE NAVIGATION & EVACUATION</span>
-          <span style="background: #2563eb; color: #fff; font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; font-weight: 700; letter-spacing: 0.5px;">STUDENT ROLE</span>
+        <div style="font-size: 1.1rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+          <span>📱 PERSONAL SAFE NAVIGATION & EVACUATION</span>
+          <span class="badge badge-info" style="font-size:0.75rem;">LIVE GPS</span>
         </div>
-        <div style="font-size: 0.85rem; color: #1e3a8a; margin-top: 3px;">
-          Select a student below to track real-time position, receive instant hazard proximity alerts, and follow the shortest safe path to emergency assembly havens.
+        <div style="font-size: 0.85rem; color: #64748b; margin-top: 3px;">
+          Tracking position for <strong id="student-identity-text" style="color:#2563eb;">Student</strong>. Real-time geofenced routes navigate directly away from active emergency hazards to certified campus safe havens.
         </div>
       </div>
-      <a href="/admin.html" class="btn" style="background: #dc2626; color: #fff; font-weight: 700; font-size: 0.85rem; padding: 9px 18px; border-radius: 8px; text-decoration: none; box-shadow: 0 2px 6px rgba(220,38,38,0.3);">
-        🛡️ Switch to Admin Console →
-      </a>
-    </div>
-
-    <!-- 1. MULTI-USER SWITCHER BAR (Only names: Daniel, Johan, Jie, Yu, Siling) -->
-    <div style="margin-bottom: 14px;">
-      <div style="font-size: 0.8rem; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 8px;">
-        👥 Active Student (Click to Switch):
-      </div>
-      <div class="student-bar">
-        <button class="student-chip active" data-email="daniel.wu@csu.fullerton.edu" onclick="selectUser('daniel.wu@csu.fullerton.edu')">
-          🧑 Daniel
-        </button>
-        <button class="student-chip" data-email="johan.liman@csu.fullerton.edu" onclick="selectUser('johan.liman@csu.fullerton.edu')">
-          🧑 Johan
-        </button>
-        <button class="student-chip" data-email="jie.chen@csu.fullerton.edu" onclick="selectUser('jie.chen@csu.fullerton.edu')">
-          🧑 Jie
-        </button>
-        <button class="student-chip" data-email="yucheng.chang@csu.fullerton.edu" onclick="selectUser('yucheng.chang@csu.fullerton.edu')">
-          🧑 Yu
-        </button>
-        <button class="student-chip" data-email="siling.liu@csu.fullerton.edu" onclick="selectUser('siling.liu@csu.fullerton.edu')">
-          🧑 Siling
-        </button>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="badge badge-success" id="pill-hazard-status">🟢 SAFE</span>
       </div>
     </div>
 
-    <!-- 2. EMERGENCY NOTIFICATION TOAST/BANNER -->
+    <!-- Active Emergency Toast / Notification Banner -->
     <div id="user-alert-notification-area"></div>
 
-    <!-- 3. STATUS BANNER (Dynamic Safe Route Countdown) -->
-    <div id="evacuation-display-box" class="evacuation-card" style="border: 1.5px solid #86efac; background: #f0fdf4;">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 1.6rem;">🟢</span>
-          <div>
-            <div style="font-size: 1.05rem; font-weight: 800; color: #15803d;">Campus Status: All Clear</div>
-            <div style="font-size: 0.85rem; color: #166534;">No active emergencies reported in your immediate sector. You are safe.</div>
-          </div>
+    <!-- GOOGLE MAPS-STYLE NAVIGATION HUD CARD -->
+    <div id="gmaps-nav-hud" class="gmaps-nav-card">
+      <div id="gmaps-header-bar" class="gmaps-nav-header">
+        <div id="gmaps-maneuver-icon" class="gmaps-maneuver-icon">⬆️</div>
+        <div class="gmaps-instruction-wrap">
+          <div id="gmaps-primary-instruction" class="gmaps-instruction-primary">Proceed on Titan Walkway toward Safe Haven</div>
+          <div id="gmaps-secondary-instruction" class="gmaps-instruction-secondary">Follow green pedestrian evacuation path to campus perimeter</div>
         </div>
-        <span class="badge badge-success" style="font-size: 0.85rem; padding: 5px 14px;">🟢 NORMAL</span>
+        <div>
+          <span id="gmaps-status-pill" class="badge badge-success" style="font-size:0.8rem; padding:5px 12px;">ALL CLEAR</span>
+        </div>
+      </div>
+
+      <div class="gmaps-stats-bar">
+        <div style="display:flex; align-items:baseline;">
+          <span id="gmaps-eta-text" class="gmaps-eta-badge">~2 min</span>
+          <span id="gmaps-dist-text" class="gmaps-dist-badge">(140 meters)</span>
+        </div>
+        <div id="gmaps-haven-name" class="gmaps-destination-badge">
+          🛡️ North Quad Assembly Field (SZ1)
+        </div>
+        <button type="button" class="itinerary-toggle" onclick="toggleItinerary()">
+          <span id="itinerary-toggle-icon">▼</span> Step-by-Step Guidance
+        </button>
+      </div>
+
+      <!-- Expandable Turn-by-Turn Guidance Steps -->
+      <div id="gmaps-itinerary" class="itinerary-steps">
+        <div class="itinerary-step">
+          <div class="itinerary-step-icon">📍</div>
+          <div class="itinerary-step-text">Current Position (Student Location)</div>
+          <div class="itinerary-step-dist">Start</div>
+        </div>
+        <div class="itinerary-step">
+          <div class="itinerary-step-icon">🚶</div>
+          <div class="itinerary-step-text">Head along main CSUF Walkway away from danger sector</div>
+          <div class="itinerary-step-dist">65 m</div>
+        </div>
+        <div class="itinerary-step">
+          <div class="itinerary-step-icon">↗️</div>
+          <div class="itinerary-step-text">Turn slight right toward Designated Assembly Point</div>
+          <div class="itinerary-step-dist">75 m</div>
+        </div>
+        <div class="itinerary-step">
+          <div class="itinerary-step-icon">🏁</div>
+          <div class="itinerary-step-text"><strong>Arrive at Safe Haven (SZ1)</strong> - Triage & emergency shelter ready</div>
+          <div class="itinerary-step-dist">Destination</div>
+        </div>
       </div>
     </div>
 
-    <!-- 4. CAMPUS MAP (Shows You + Peer Students + Green Safe Route) -->
-    <div class="card" style="padding: 12px;">
-      <div id="user-map" class="map-container" style="height: 540px;"></div>
+    <!-- Hidden fallback container for engine backward compatibility -->
+    <div id="evacuation-display-box" style="display:none;"></div>
 
-      <!-- Quick Action Controls Below Map -->
+    <!-- STUDENT MAP VIEW -->
+    <div class="card" style="padding: 12px; background:#ffffff;">
+      <div id="user-map" class="map-container" style="height: 540px; border-radius:10px;"></div>
+
+      <!-- Controls below map -->
       <div class="quick-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 6px; flex-wrap: wrap; gap: 12px;">
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
           <button id="btn-evacuate-move" class="btn btn-warning" style="font-size: 0.95rem; font-weight: 700; padding: 10px 22px; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);" onclick="window.safePathApp.toggleMoveToSafeZone()">
             🏃 Move to Nearest Safe Zone
-          </button>
-          <button id="btn-evacuate-all" class="btn btn-primary" style="font-size: 0.95rem; font-weight: 700; padding: 10px 22px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);" onclick="window.safePathApp.toggleMoveAllToSafeZones()">
-            👥 Move All (Evacuate All 5 Students)
           </button>
         </div>
 
@@ -109,13 +246,59 @@
   <script>
     let userApp;
 
+    // Session Verification
+    let loggedUser = null;
+    try {
+      const raw = localStorage.getItem('safepath_user');
+      if (raw) loggedUser = JSON.parse(raw);
+    } catch (e) {}
+
+    // Default to Johan if none stored yet
+    if (!loggedUser || !loggedUser.email) {
+      loggedUser = {
+        email: "johaliman@csu.fullerton.edu",
+        name: "Johan",
+        role: "Student",
+        latitude: 33.8802,
+        longitude: -117.8858
+      };
+      localStorage.setItem('safepath_user', JSON.stringify(loggedUser));
+      localStorage.setItem('safepath_user_email', loggedUser.email);
+    }
+
+    // Display user name
+    document.getElementById('user-name-display').textContent = `${loggedUser.name} (${loggedUser.email})`;
+    document.getElementById('student-identity-text').textContent = `${loggedUser.name} (${loggedUser.email})`;
+
     document.addEventListener('DOMContentLoaded', () => {
-      userApp = new SafePathEngine({ role: 'user', mapId: 'user-map' });
+      userApp = new SafePathEngine({
+        role: 'user',
+        mapId: 'user-map',
+        email: loggedUser.email,
+        name: loggedUser.name,
+        lat: loggedUser.latitude || 33.8802,
+        lng: loggedUser.longitude || -117.8858
+      });
       window.safePathApp = userApp;
     });
 
-    function selectUser(email) {
-      userApp.switchActiveUser(email);
+    function toggleItinerary() {
+      const box = document.getElementById('gmaps-itinerary');
+      const icon = document.getElementById('itinerary-toggle-icon');
+      if (box.style.display === 'block') {
+        box.style.display = 'none';
+        icon.textContent = '▼';
+      } else {
+        box.style.display = 'block';
+        icon.textContent = '▲';
+      }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('safepath_user');
+      localStorage.removeItem('safepath_user_email');
+      localStorage.removeItem('safepath_role');
+      window.location.href = '/login.html';
     }
   </script>
 </body>

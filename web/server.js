@@ -21,74 +21,40 @@ try {
 let activeAlerts = [];
 let alertHistory = [];
 
-// Connected / Registered Users Store
+// Connected / Registered Users Store with Pre-seeded Accounts
 let registeredUsers = new Map();
-// Seed with realistic demo student accounts
-registeredUsers.set("daniel.wu@csu.fullerton.edu", {
-  email: "daniel.wu@csu.fullerton.edu",
-  name: "Daniel",
-  role: "Student",
-  latitude: 33.8813,
-  longitude: -117.8854,
-  accuracy: 4.5,
-  networkState: "WiFi",
-  batteryLevel: 92,
-  lastPing: Date.now(),
-  isSimulated: false,
-  status: "NORMAL"
-});
-registeredUsers.set("johan.liman@csu.fullerton.edu", {
-  email: "johan.liman@csu.fullerton.edu",
-  name: "Johan",
-  role: "Student",
-  latitude: 33.8802,
-  longitude: -117.8858,
-  accuracy: 12.0,
-  networkState: "4G",
-  batteryLevel: 84,
-  lastPing: Date.now(),
-  isSimulated: true,
-  status: "NORMAL"
-});
-registeredUsers.set("jie.chen@csu.fullerton.edu", {
-  email: "jie.chen@csu.fullerton.edu",
-  name: "Jie",
-  role: "Student",
-  latitude: 33.8829,
-  longitude: -117.8828,
-  accuracy: 3.2,
-  networkState: "WiFi",
-  batteryLevel: 78,
-  lastPing: Date.now(),
-  isSimulated: true,
-  status: "NORMAL"
-});
-registeredUsers.set("yucheng.chang@csu.fullerton.edu", {
-  email: "yucheng.chang@csu.fullerton.edu",
-  name: "Yu",
-  role: "Student",
-  latitude: 33.8820,
-  longitude: -117.8885,
-  accuracy: 18.5,
-  networkState: "WeakCellular",
-  batteryLevel: 45,
-  lastPing: Date.now(),
-  isSimulated: true,
-  status: "NORMAL"
-});
-registeredUsers.set("siling.liu@csu.fullerton.edu", {
-  email: "siling.liu@csu.fullerton.edu",
-  name: "Siling",
-  role: "Student",
-  latitude: 33.8835,
-  longitude: -117.8870,
-  accuracy: 5.0,
-  networkState: "WiFi",
-  batteryLevel: 89,
-  lastPing: Date.now(),
-  isSimulated: true,
-  status: "NORMAL"
-});
+
+function seedUser(email, password, name, role, lat, lng, isSimulated = true) {
+  const normEmail = email.trim().toLowerCase();
+  registeredUsers.set(normEmail, {
+    email: normEmail,
+    password: password,
+    name: name,
+    role: role,
+    latitude: lat,
+    longitude: lng,
+    accuracy: 4.5,
+    networkState: "WiFi",
+    batteryLevel: 94,
+    lastPing: Date.now(),
+    isSimulated: isSimulated,
+    status: "NORMAL"
+  });
+}
+
+// 1. Admin
+seedUser("admin@safepath.com", "admin", "Campus Admin", "Admin", 33.8820, -117.8850, false);
+
+// 2. The 5 Students specified by user
+seedUser("johaliman@csu.fullerton.edu", "johanliman", "Johan", "Student", 33.8802, -117.8858);
+seedUser("d.wu@csu.fullerton.edu", "danielwu", "Daniel", "Student", 33.8813, -117.8854);
+seedUser("yu-cheng.chang@csu.fullerton.edu", "yuchengchang", "Yu", "Student", 33.8820, -117.8885);
+seedUser("jchen102951@csu.fullerton.edu", "jiechen", "Jie", "Student", 33.8829, -117.8828);
+seedUser("siling313@csu.fullerton.edu", "siling", "Siling", "Student", 33.8835, -117.8870);
+
+// Backward compatibility aliases
+seedUser("johan.liman@csu.fullerton.edu", "johanliman", "Johan", "Student", 33.8802, -117.8858);
+seedUser("daniel.wu@csu.fullerton.edu", "danielwu", "Daniel", "Student", 33.8813, -117.8854);
 
 // SSE Subscribers (Real-time alert dispatch to web browsers & mobile clients)
 const sseClients = new Set();
@@ -352,6 +318,152 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // 5a. POST /api/auth/login
+  if (method === 'POST' && pathname === '/api/auth/login') {
+    try {
+      const data = await parseBody(req);
+      const email = (data.email || '').trim().toLowerCase();
+      const password = (data.password || '').trim();
+
+      if (!email || !password) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Email and password are required' }));
+        return;
+      }
+
+      const user = registeredUsers.get(email);
+      if (!user) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'User not found. Please check your credentials or register.' }));
+        return;
+      }
+
+      if (user.password && user.password !== password) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid password. Please try again.' }));
+        return;
+      }
+
+      user.lastPing = Date.now();
+      if (data.latitude && data.longitude) {
+        user.latitude = parseFloat(data.latitude);
+        user.longitude = parseFloat(data.longitude);
+      }
+
+      // Proximity check against active alerts
+      let userAlerts = [];
+      for (const alert of activeAlerts) {
+        const d = getDistanceMeters(user.latitude, user.longitude, alert.latitude, alert.longitude);
+        if (d <= alert.radiusMeters) {
+          user.status = 'IN HAZARD';
+          userAlerts.push({ alert, distanceMeters: Math.round(d) });
+        }
+      }
+
+      const safeUser = { ...user };
+      delete safeUser.password;
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        user: safeUser,
+        activeAlertsCount: activeAlerts.length,
+        nearbyAlerts: userAlerts
+      }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // 5b. POST /api/auth/register (New User Registration with Location capture)
+  if (method === 'POST' && pathname === '/api/auth/register') {
+    try {
+      const data = await parseBody(req);
+      const email = (data.email || '').trim().toLowerCase();
+      const password = (data.password || '').trim();
+      const name = (data.name || '').trim();
+
+      if (!email || !email.includes('@')) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'A valid email address is required' }));
+        return;
+      }
+      if (!password || password.length < 3) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Password must be at least 3 characters' }));
+        return;
+      }
+
+      if (registeredUsers.has(email)) {
+        res.writeHead(409, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'An account with this email already exists. Please log in.' }));
+        return;
+      }
+
+      const lat = (data.latitude !== undefined && data.latitude !== null) ? parseFloat(data.latitude) : 33.8820;
+      const lng = (data.longitude !== undefined && data.longitude !== null) ? parseFloat(data.longitude) : -117.8850;
+      const role = data.role || (email.includes('admin') ? 'Admin' : 'Student');
+      const displayName = name || email.split('@')[0];
+
+      const newUser = {
+        email,
+        password,
+        name: displayName,
+        role,
+        latitude: lat,
+        longitude: lng,
+        accuracy: data.accuracy ? parseFloat(data.accuracy) : 5.0,
+        networkState: data.networkState || 'WiFi',
+        batteryLevel: data.batteryLevel !== undefined ? data.batteryLevel : 96,
+        lastPing: Date.now(),
+        isSimulated: false,
+        status: 'NORMAL'
+      };
+
+      registeredUsers.set(email, newUser);
+
+      // Check proximity
+      let userAlerts = [];
+      for (const alert of activeAlerts) {
+        const d = getDistanceMeters(newUser.latitude, newUser.longitude, alert.latitude, alert.longitude);
+        if (d <= alert.radiusMeters) {
+          newUser.status = 'IN HAZARD';
+          userAlerts.push({ alert, distanceMeters: Math.round(d) });
+        }
+      }
+
+      // Notify SSE admin map
+      broadcastSSE('user_location_update', {
+        email: newUser.email,
+        name: newUser.name,
+        latitude: newUser.latitude,
+        longitude: newUser.longitude,
+        accuracy: newUser.accuracy,
+        status: newUser.status,
+        batteryLevel: newUser.batteryLevel,
+        networkState: newUser.networkState,
+        lastPing: newUser.lastPing
+      });
+
+      const safeUser = { ...newUser };
+      delete safeUser.password;
+
+      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        user: safeUser,
+        activeAlertsCount: activeAlerts.length,
+        nearbyAlerts: userAlerts
+      }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
   // 5. POST Google Email Registration & Auth
   if (method === 'POST' && pathname === '/api/auth/google') {
     try {
@@ -514,10 +626,15 @@ const server = http.createServer(async (req, res) => {
   if (method === 'POST' && pathname === '/api/users/reset') {
     const initialCoords = {
       'daniel.wu@csu.fullerton.edu': { lat: 33.8813, lng: -117.8854, name: 'Daniel' },
+      'd.wu@csu.fullerton.edu': { lat: 33.8813, lng: -117.8854, name: 'Daniel' },
       'johan.liman@csu.fullerton.edu': { lat: 33.8802, lng: -117.8858, name: 'Johan' },
+      'johaliman@csu.fullerton.edu': { lat: 33.8802, lng: -117.8858, name: 'Johan' },
       'jie.chen@csu.fullerton.edu': { lat: 33.8829, lng: -117.8828, name: 'Jie' },
+      'jchen102951@csu.fullerton.edu': { lat: 33.8829, lng: -117.8828, name: 'Jie' },
       'yucheng.chang@csu.fullerton.edu': { lat: 33.8820, lng: -117.8885, name: 'Yu' },
-      'siling.liu@csu.fullerton.edu': { lat: 33.8835, lng: -117.8870, name: 'Siling' }
+      'yu-cheng.chang@csu.fullerton.edu': { lat: 33.8820, lng: -117.8885, name: 'Yu' },
+      'siling.liu@csu.fullerton.edu': { lat: 33.8835, lng: -117.8870, name: 'Siling' },
+      'siling313@csu.fullerton.edu': { lat: 33.8835, lng: -117.8870, name: 'Siling' }
     };
     for (const [email, user] of registeredUsers.entries()) {
       const init = initialCoords[email];
@@ -545,9 +662,18 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 7. GET Users (For Admin Fleet Display)
+  // 7. GET Users (For Admin Fleet Display) - returns registered students, hides Admin and strips passwords
   if (method === 'GET' && pathname === '/api/users') {
-    const list = Array.from(registeredUsers.values());
+    const seenNames = new Set();
+    const list = [];
+    for (const user of registeredUsers.values()) {
+      if (user.role === 'Admin' || user.email === 'admin@safepath.com') continue;
+      if (seenNames.has(user.name)) continue;
+      seenNames.add(user.name);
+      const safe = { ...user };
+      delete safe.password;
+      list.push(safe);
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       totalUsers: list.length,
