@@ -445,12 +445,231 @@
                 android:textSize="11sp" />
         </LinearLayout>
 
-        <!-- Student Leaflet Map WebView -->
-        <WebView
-            android:id="@+id/mapWebView"
+        <!-- Student Leaflet Map Container with Google Maps Turn-by-Turn Navigation HUD Overlay -->
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1" />
+            android:layout_weight="1">
+
+            <WebView
+                android:id="@+id/mapWebView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <!-- Google Maps Turn-by-Turn Navigation Overlay (Appears during Move to Safe Zone) -->
+            <RelativeLayout
+                android:id="@+id/gmapsNavOverlay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone">
+
+                <!-- 1. Top Green/Teal Header (toward Safe Haven) -->
+                <LinearLayout
+                    android:id="@+id/gmapsTopHeaderContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentTop="true"
+                    android:orientation="vertical"
+                    android:layout_margin="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:background="@drawable/bg_gmaps_nav_header"
+                        android:padding="14dp"
+                        android:gravity="center_vertical"
+                        android:elevation="6dp">
+
+                        <TextView
+                            android:id="@+id/tvNavOverlayArrow"
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:text="⬆"
+                            android:textColor="#FFFFFF"
+                            android:textSize="26sp"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:background="@drawable/bg_gmaps_arrow_disc" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:layout_marginStart="12dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="toward"
+                                android:textColor="#A7F3D0"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/tvNavOverlayDestName"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="North Quad Assembly Field"
+                                android:textColor="#FFFFFF"
+                                android:textSize="17sp"
+                                android:textStyle="bold"
+                                android:singleLine="true"
+                                android:ellipsize="end" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Connected Attached Sub-Badge (Then ↰) -->
+                    <TextView
+                        android:id="@+id/tvNavOverlayThen"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Then ↰ Titan Walkway"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:background="@drawable/bg_gmaps_sub_pill"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="5dp"
+                        android:layout_marginStart="18dp"
+                        android:elevation="6dp" />
+                </LinearLayout>
+
+                <!-- 2. Floating Right Tools Column -->
+                <LinearLayout
+                    android:id="@+id/gmapsRightTools"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_below="@id/gmapsTopHeaderContainer"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="12dp"
+                    android:layout_marginTop="8dp">
+
+                    <TextView
+                        android:id="@+id/btnNavCompass"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
+                        android:text="🧭"
+                        android:textSize="18sp"
+                        android:gravity="center"
+                        android:background="@drawable/bg_gmaps_tool_circle"
+                        android:elevation="4dp"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:id="@+id/btnNavSearch"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
+                        android:text="🔍"
+                        android:textSize="18sp"
+                        android:gravity="center"
+                        android:background="@drawable/bg_gmaps_tool_circle"
+                        android:elevation="4dp"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:id="@+id/btnNavSpeaker"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
+                        android:text="🔊"
+                        android:textSize="18sp"
+                        android:gravity="center"
+                        android:background="@drawable/bg_gmaps_tool_circle"
+                        android:elevation="4dp"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:id="@+id/btnNavRoutes"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
+                        android:text="🔀"
+                        android:textSize="18sp"
+                        android:gravity="center"
+                        android:background="@drawable/bg_gmaps_tool_circle"
+                        android:elevation="4dp" />
+                </LinearLayout>
+
+                <!-- 3. Bottom Floating Docked White Card -->
+                <LinearLayout
+                    android:id="@+id/gmapsBottomDockCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentBottom="true"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_gmaps_nav_dock"
+                    android:layout_margin="10dp"
+                    android:paddingHorizontal="18dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="14dp"
+                    android:elevation="8dp">
+
+                    <!-- Grab Handle -->
+                    <View
+                        android:layout_width="38dp"
+                        android:layout_height="4dp"
+                        android:layout_gravity="center_horizontal"
+                        android:background="@drawable/bg_gmaps_grab_handle"
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- Row with ETA, Dist/Clock, Sparkle, Exit -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvNavDockEta"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="2 min"
+                                android:textColor="#1E293B"
+                                android:textSize="22sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvNavDockDistClock"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="140 m · 14:05"
+                                android:textColor="#64748B"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/btnNavDockSparkle"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:text="✨"
+                            android:textSize="18sp"
+                            android:gravity="center"
+                            android:background="@drawable/bg_gmaps_sparkle"
+                            android:layout_marginEnd="10dp" />
+
+                        <Button
+                            android:id="@+id/btnNavDockExit"
+                            android:layout_width="wrap_content"
+                            android:layout_height="42dp"
+                            android:text="Exit"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:backgroundTint="#D93025"
+                            app:cornerRadius="21dp"
+                            android:paddingHorizontal="22dp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+            </RelativeLayout>
+        </FrameLayout>
 
         <View
             android:layout_width="match_parent"

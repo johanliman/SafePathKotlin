@@ -126,6 +126,121 @@
       font-weight: 600;
       font-size: 0.8rem;
     }
+
+    /* Google Maps Active Navigation Overlay matching media_1790888545376.png */
+    .gmaps-nav-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .gmaps-floating-top {
+      pointer-events: auto;
+      margin: 14px 14px 0 14px;
+    }
+    .gmaps-top-card {
+      background: #005a4e;
+      color: #ffffff;
+      border-radius: 16px;
+      padding: 14px 18px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .gmaps-maneuver-arrow {
+      background: rgba(255,255,255,0.18);
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+    .gmaps-then-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #00433a;
+      color: #ffffff;
+      padding: 5px 14px;
+      border-radius: 0 0 10px 10px;
+      margin-left: 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    }
+    .gmaps-floating-tools {
+      pointer-events: auto;
+      position: absolute;
+      right: 14px;
+      top: 120px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .gmaps-tool-pill {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      cursor: pointer;
+      transition: transform 0.15s, background-color 0.15s;
+    }
+    .gmaps-tool-pill:hover {
+      background: #f8fafc;
+      transform: scale(1.06);
+    }
+    .gmaps-floating-bottom {
+      pointer-events: auto;
+      margin: 0 10px 10px 10px;
+    }
+    .gmaps-dock-card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 10px 20px 16px 20px;
+      box-shadow: 0 -4px 25px rgba(0,0,0,0.2);
+      border: 1px solid #e2e8f0;
+    }
+    .gmaps-grab-bar {
+      width: 38px;
+      height: 4px;
+      background: #cbd5e1;
+      border-radius: 2px;
+      margin: 0 auto 10px auto;
+    }
+    .btn-gmaps-exit {
+      background: #d93025;
+      color: #ffffff;
+      border: none;
+      border-radius: 28px;
+      padding: 11px 26px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(217, 48, 37, 0.4);
+      transition: background-color 0.15s, transform 0.1s;
+    }
+    .btn-gmaps-exit:hover {
+      background: #c5221f;
+      transform: scale(1.03);
+    }
   </style>
 </head>
 <body>
@@ -221,9 +336,75 @@
     <!-- Hidden fallback container for engine backward compatibility -->
     <div id="evacuation-display-box" style="display:none;"></div>
 
-    <!-- STUDENT MAP VIEW -->
+    <!-- STUDENT MAP VIEW WITH GOOGLE MAPS NAVIGATION OVERLAY -->
     <div class="card" style="padding: 12px; background:#ffffff;">
-      <div id="user-map" class="map-container" style="height: 540px; border-radius:10px;"></div>
+      <div id="user-map-container" style="position:relative; height: 560px; border-radius: 12px; overflow: hidden;">
+        <div id="user-map" class="map-container" style="width: 100%; height: 100%; border-radius: 12px;"></div>
+
+        <!-- Google Maps Turn-by-Turn Navigation HUD Overlay matching media_1790888545376.png -->
+        <div id="gmaps-nav-overlay" class="gmaps-nav-overlay">
+          <!-- 1. Top Green Floating Card -->
+          <div class="gmaps-floating-top">
+            <div class="gmaps-top-card">
+              <div class="gmaps-maneuver-arrow">⬆</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 0.95rem; color: #a7f3d0; font-weight: 500;">toward</div>
+                <div id="gmaps-nav-haven-title" style="font-size: 1.25rem; font-weight: 800; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  North Quad Assembly Field
+                </div>
+              </div>
+            </div>
+            <div class="gmaps-then-pill">
+              <span>Then ↰</span> <span id="gmaps-nav-then-text">Titan Walkway</span>
+            </div>
+          </div>
+
+          <!-- 2. Floating Tools Column -->
+          <div class="gmaps-floating-tools">
+            <button type="button" class="gmaps-tool-pill" title="Information" onclick="alert('SafePath Navigation: Geofenced evacuation route calculated away from hazard area.')">
+              ⚠️
+            </button>
+            <button type="button" class="gmaps-tool-pill" title="Re-center on Position" onclick="window.safePathApp.recenterOnUser()">
+              🧭
+            </button>
+            <button type="button" class="gmaps-tool-pill" title="Search Destination" onclick="alert('Destination: ' + (document.getElementById('gmaps-nav-haven-title').textContent || 'Safe Haven'))">
+              🔍
+            </button>
+            <button type="button" class="gmaps-tool-pill" id="gmaps-voice-toggle" title="Voice Guidance" onclick="toggleVoiceAlerts(this)">
+              🔊
+            </button>
+            <button type="button" class="gmaps-tool-pill" title="Overview Route" onclick="window.safePathApp.fitRouteBounds()">
+              🔀
+            </button>
+          </div>
+
+          <!-- 3. Bottom Floating Docked White Card -->
+          <div class="gmaps-floating-bottom">
+            <div class="gmaps-dock-card">
+              <div class="gmaps-grab-bar"></div>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                <div>
+                  <div id="gmaps-dock-eta" style="font-size: 1.85rem; font-weight: 800; color: #1e293b; line-height: 1.1;">
+                    2 <span style="font-size: 1.35rem; font-weight: 700;">min</span>
+                  </div>
+                  <div id="gmaps-dock-dist-clock" style="font-size: 0.95rem; color: #5f6368; font-weight: 600; margin-top: 3px;">
+                    140 m · 14:05
+                  </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <button type="button" title="SafePath Assistant" style="width: 44px; height: 44px; border-radius: 50%; background: #f0f4f9; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; cursor: pointer;" onclick="alert('SafePath Assistant: Keep along the safe evacuation corridor away from the danger zone.')">
+                    ✨
+                  </button>
+                  <button id="btn-gmaps-dock-exit" type="button" class="btn-gmaps-exit" onclick="window.safePathApp.stopNavigation()">
+                    Exit
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- Controls below map -->
       <div class="quick-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 6px; flex-wrap: wrap; gap: 12px;">

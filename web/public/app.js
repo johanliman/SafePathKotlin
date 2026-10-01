@@ -56,6 +56,7 @@ class SafePathEngine {
     this.accessibilityMode = false;
     this.lastNotifiedAlertId = null;
     this.pollInterval = null;
+    this.isNavigating = false;
 
     this.init();
   }
@@ -286,42 +287,44 @@ class SafePathEngine {
     }
 
     // CASE B: USER & DEMO PANELS (Active student shown as "YOU", other 4 as fleet students)
-    // 1. Render Active User (YOU) with prominent Blue Marker
-    const isYouInHazard = this.isLocationInHazard(this.userLat, this.userLng);
-    const activeColor = isYouInHazard ? '#ef4444' : '#3b82f6';
+    if (!this.isNavigating) {
+      // 1. Render Active User (YOU) with prominent Blue Marker
+      const isYouInHazard = this.isLocationInHazard(this.userLat, this.userLng);
+      const activeColor = isYouInHazard ? '#ef4444' : '#3b82f6';
 
-    const userHtml = `
-      <div style="position:relative;">
-        <div style="background:${activeColor}; width:28px; height:28px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 16px ${activeColor}; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; font-weight:bold;">
-          📍
+      const userHtml = `
+        <div style="position:relative;">
+          <div style="background:${activeColor}; width:28px; height:28px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 16px ${activeColor}; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; font-weight:bold;">
+            📍
+          </div>
+          <div style="position:absolute; top:-26px; left:-42px; background:rgba(15,23,42,0.95); color:#fff; font-size:11px; font-weight:800; padding:2px 8px; border-radius:12px; border:2px solid ${activeColor}; white-space:nowrap; box-shadow:0 4px 6px rgba(0,0,0,0.5);">
+            YOU: ${this.userName.split(' ')[0]} ${isYouInHazard ? '🚨' : '🟢'}
+          </div>
         </div>
-        <div style="position:absolute; top:-26px; left:-42px; background:rgba(15,23,42,0.95); color:#fff; font-size:11px; font-weight:800; padding:2px 8px; border-radius:12px; border:2px solid ${activeColor}; white-space:nowrap; box-shadow:0 4px 6px rgba(0,0,0,0.5);">
-          YOU: ${this.userName.split(' ')[0]} ${isYouInHazard ? '🚨' : '🟢'}
-        </div>
-      </div>
-    `;
+      `;
 
-    const userIcon = L.divIcon({
-      html: userHtml,
-      className: 'active-user-pin',
-      iconSize: [28, 28],
-      iconAnchor: [14, 14]
-    });
-
-    if (this.userMarker) {
-      this.userMarker.setLatLng([this.userLat, this.userLng]);
-      this.userMarker.setIcon(userIcon);
-    } else {
-      this.userMarker = L.marker([this.userLat, this.userLng], {
-        icon: userIcon,
-        draggable: true,
-        zIndexOffset: 2000
-      }).addTo(this.map);
-
-      this.userMarker.on('dragend', (e) => {
-        const pos = e.target.getLatLng();
-        this.setUserLocation(pos.lat, pos.lng);
+      const userIcon = L.divIcon({
+        html: userHtml,
+        className: 'active-user-pin',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
       });
+
+      if (this.userMarker) {
+        this.userMarker.setLatLng([this.userLat, this.userLng]);
+        this.userMarker.setIcon(userIcon);
+      } else {
+        this.userMarker = L.marker([this.userLat, this.userLng], {
+          icon: userIcon,
+          draggable: true,
+          zIndexOffset: 2000
+        }).addTo(this.map);
+
+        this.userMarker.on('dragend', (e) => {
+          const pos = e.target.getLatLng();
+          this.setUserLocation(pos.lat, pos.lng);
+        });
+      }
     }
 
     // 2. Render OTHER Students simultaneously (ONLY in Admin or Split Demo mode, NEVER in Student Personal View)
@@ -1468,15 +1471,81 @@ class SafePathEngine {
     this.computeSafeRoute();
   }
 
-  // --- MOVE ACTIVE USER TO NEAREST SAFE ZONE ---
+  // --- BEARING & NAVIGATION PUCK HELPERS ---
+  calculateBearing(lat1, lon1, lat2, lon2) {
+    const toRad = deg => (deg * Math.PI) / 180;
+    const toDeg = rad => (rad * 180) / Math.PI;
+    const phi1 = toRad(lat1);
+    const phi2 = toRad(lat2);
+    const deltaLambda = toRad(lon2 - lon1);
+    const y = Math.sin(deltaLambda) * Math.cos(phi2);
+    const x = Math.cos(phi1) * Math.sin(phi2) - Math.sin(phi1) * Math.cos(phi2) * Math.cos(deltaLambda);
+    const bearing = toDeg(Math.atan2(y, x));
+    return (bearing + 360) % 360;
+  }
+
+  updateNavigationPuck(lat, lng, bearing = 0) {
+    const puckHtml = `
+      <div style="position:relative; width:44px; height:44px; display:flex; align-items:center; justify-content:center;">
+        <div style="background:#ffffff; border-radius:50%; width:40px; height:40px; box-shadow:0 4px 14px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; border:2px solid #ffffff;">
+          <div style="width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent; border-bottom:20px solid #1a73e8; transform:rotate(${bearing}deg); filter:drop-shadow(0 2px 3px rgba(0,0,0,0.2));"></div>
+        </div>
+      </div>
+    `;
+
+    const icon = L.divIcon({
+      className: 'gmaps-nav-puck',
+      html: puckHtml,
+      iconSize: [44, 44],
+      iconAnchor: [22, 22]
+    });
+
+    if (this.userMarker) {
+      this.userMarker.setLatLng([lat, lng]);
+      this.userMarker.setIcon(icon);
+      this.userMarker.setZIndexOffset(3000);
+    } else {
+      this.userMarker = L.marker([lat, lng], { icon, zIndexOffset: 3000 }).addTo(this.map);
+    }
+  }
+
+  stopNavigation() {
+    if (this.moveInterval) {
+      clearInterval(this.moveInterval);
+      this.moveInterval = null;
+    }
+    this.isNavigating = false;
+    const btn = document.getElementById('btn-evacuate-move') || document.getElementById('btn-walk-sim');
+    if (btn) btn.textContent = '🏃 Move to Nearest Safe Zone';
+
+    const overlay = document.getElementById('gmaps-nav-overlay');
+    if (overlay) overlay.style.display = 'none';
+
+    this.renderAllStudentsOnMap();
+    this.computeSafeRoute();
+  }
+
+  recenterOnUser() {
+    if (this.map) {
+      this.map.panTo([this.userLat, this.userLng]);
+    }
+  }
+
+  fitRouteBounds() {
+    if (this.activeRoutePolyline && this.map) {
+      this.map.fitBounds(this.activeRoutePolyline.getBounds(), { padding: [40, 40] });
+    } else if (this.map) {
+      this.map.setView([this.userLat, this.userLng], 16);
+    }
+  }
+
+  // --- MOVE ACTIVE USER TO NEAREST SAFE ZONE WITH GOOGLE MAPS NAVIGATION HUD ---
   toggleMoveToSafeZone() {
     const btn = document.getElementById('btn-evacuate-move') || document.getElementById('btn-walk-sim');
 
     // If currently moving, stop
     if (this.moveInterval) {
-      clearInterval(this.moveInterval);
-      this.moveInterval = null;
-      if (btn) btn.textContent = '🏃 Move to Nearest Safe Zone';
+      this.stopNavigation();
       return;
     }
 
@@ -1508,11 +1577,33 @@ class SafePathEngine {
     let currentStep = 0;
     if (btn) btn.textContent = '⏹️ Stop Moving';
 
+    // Show Google Maps Active Navigation Overlay matching media_1790888545376.png
+    this.isNavigating = true;
+    const overlay = document.getElementById('gmaps-nav-overlay');
+    const titleEl = document.getElementById('gmaps-nav-haven-title');
+    const thenEl = document.getElementById('gmaps-nav-then-text');
+    const dockEtaEl = document.getElementById('gmaps-dock-eta');
+    const dockDistClockEl = document.getElementById('gmaps-dock-dist-clock');
+
+    if (overlay) overlay.style.display = 'flex';
+    if (titleEl) titleEl.textContent = bestSafe?.name || 'Designated Campus Safe Haven';
+    if (thenEl) thenEl.textContent = 'Titan Walkway';
+
+    const now = new Date();
+    const arrivalTime = new Date(now.getTime() + routeInfo.estMinutes * 60000);
+    const clockStr = `${String(arrivalTime.getHours()).padStart(2, '0')}:${String(arrivalTime.getMinutes()).padStart(2, '0')}`;
+    if (dockEtaEl) dockEtaEl.innerHTML = `${routeInfo.estMinutes} <span style="font-size:1.35rem; font-weight:700;">min</span>`;
+    if (dockDistClockEl) dockDistClockEl.textContent = `${routeInfo.totalDistMeters} m · ${clockStr}`;
+
+    const initialBearing = waypoints.length > 0
+      ? this.calculateBearing(this.userLat, this.userLng, waypoints[0].lat, waypoints[0].lng)
+      : 0;
+    this.updateNavigationPuck(this.userLat, this.userLng, initialBearing);
+    if (this.map) this.map.setView([this.userLat, this.userLng], 17);
+
     this.moveInterval = setInterval(() => {
       if (currentStep >= waypoints.length) {
-        clearInterval(this.moveInterval);
-        this.moveInterval = null;
-        if (btn) btn.textContent = '🏃 Move to Nearest Safe Zone';
+        this.stopNavigation();
         const havenName = bestSafe?.name || 'Safe Haven';
         this.setUserLocation(bestSafe.lat, bestSafe.lng, 0, 0, havenName);
         this.computeSafeRoute();
@@ -1521,6 +1612,10 @@ class SafePathEngine {
       }
 
       const pt = waypoints[currentStep];
+      const bearing = (currentStep + 1 < waypoints.length)
+        ? this.calculateBearing(pt.lat, pt.lng, waypoints[currentStep + 1].lat, waypoints[currentStep + 1].lng)
+        : initialBearing;
+
       currentStep++;
 
       // Compute remaining distance & walking time as student advances
@@ -1540,6 +1635,14 @@ class SafePathEngine {
       const walkSpeed = this.accessibilityMode ? 0.85 : 1.2;
       const remainingMinutes = remainingMeters <= 25 ? 0 : Math.max(1, Math.round(remainingMeters / walkSpeed / 60));
 
+      const stepArrival = new Date(Date.now() + remainingMinutes * 60000);
+      const stepClock = `${String(stepArrival.getHours()).padStart(2, '0')}:${String(stepArrival.getMinutes()).padStart(2, '0')}`;
+      if (dockEtaEl) dockEtaEl.innerHTML = `${remainingMinutes} <span style="font-size:1.35rem; font-weight:700;">min</span>`;
+      if (dockDistClockEl) dockDistClockEl.textContent = `${Math.round(remainingMeters)} m · ${stepClock}`;
+
+      this.updateNavigationPuck(pt.lat, pt.lng, bearing);
+      if (this.map) this.map.panTo([pt.lat, pt.lng]);
+
       this.setUserLocation(
         pt.lat,
         pt.lng,
@@ -1550,7 +1653,7 @@ class SafePathEngine {
     }, 600);
   }
 
-  // --- MOVE ALL STUDENTS CONCURRENTLY TO NEAREST SAFE ZONES ---
+  // --- MOVE ALL STUDENTS CONCURRENTLY (ONLY AFFECTED HAZARD STUDENTS MOVE!) ---
   toggleMoveAllToSafeZones() {
     const btn = document.getElementById('btn-evacuate-all');
 
@@ -1568,15 +1671,21 @@ class SafePathEngine {
 
     // Stop single user move if running
     if (this.moveInterval) {
-      clearInterval(this.moveInterval);
-      this.moveInterval = null;
-      const singleBtn = document.getElementById('btn-evacuate-move');
-      if (singleBtn) singleBtn.textContent = '🏃 Move to Nearest Safe Zone';
+      this.stopNavigation();
     }
 
-    // Calculate individual evacuation paths for all 5 students
+    // Calculate individual evacuation paths ONLY for students IN THE AFFECTED HAZARD AREA!
+    // "and also check if the students is not in the affected area, move all do not change the students positions that not in affected area"
     const plans = [];
     for (const student of this.students) {
+      // CHECK: Is student in the affected hazard area?
+      const inHazard = this.isLocationInHazard(student.lat, student.lng);
+      if (!inHazard) {
+        // Students NOT in the affected area DO NOT MOVE! Position stays unchanged!
+        console.log(`Student ${student.name} is outside affected hazard area. Position will not change.`);
+        continue;
+      }
+
       const routeInfo = this.calculateSafeRoute(student.lat, student.lng);
       if (routeInfo && routeInfo.fineSteps && routeInfo.fineSteps.length > 0) {
         plans.push({
@@ -1586,19 +1695,11 @@ class SafePathEngine {
           bestSafe: routeInfo.bestSafe,
           completed: false
         });
-      } else if (routeInfo && routeInfo.arrived) {
-        plans.push({
-          student,
-          steps: [],
-          stepIndex: 0,
-          bestSafe: routeInfo.bestSafe,
-          completed: true
-        });
       }
     }
 
     if (plans.length === 0) {
-      alert('Unable to calculate evacuation paths for students.');
+      alert('All students are already safe outside the affected hazard area! No positions changed.');
       return;
     }
 
@@ -1648,7 +1749,7 @@ class SafePathEngine {
             }
           }
 
-          // Sync student location to server so Admin fleet table and SSE pings update live with DECREASING distance and time!
+          // Sync student location to server so Admin fleet table and SSE pings update live
           this.syncLocationForEmail(
             plan.student.email,
             plan.student.name,
@@ -1692,7 +1793,7 @@ class SafePathEngine {
         clearInterval(this.moveAllInterval);
         this.moveAllInterval = null;
         if (btn) btn.textContent = '👥 Move All to Safe Zones';
-        alert('🎉 ALL STUDENTS SAFELY EVACUATED! All 5 students have safely reached designated safe havens outside the hazard zone.');
+        alert('🎉 ALL AFFECTED STUDENTS SAFELY EVACUATED! Students in the danger zone have safely reached designated safe havens.');
       }
     }, 600);
   }

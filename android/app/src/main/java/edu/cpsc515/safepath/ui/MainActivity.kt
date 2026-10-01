@@ -65,6 +65,20 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnMoveToSafeZone: Button
     private lateinit var btnMoveAllToSafeZone: Button
 
+    // Google Maps Turn-by-Turn Navigation Overlay elements
+    private lateinit var gmapsNavOverlay: View
+    private lateinit var tvNavOverlayArrow: TextView
+    private lateinit var tvNavOverlayDestName: TextView
+    private lateinit var tvNavOverlayThen: TextView
+    private lateinit var btnNavCompass: View
+    private lateinit var btnNavSearch: View
+    private lateinit var btnNavSpeaker: View
+    private lateinit var btnNavRoutes: View
+    private lateinit var tvNavDockEta: TextView
+    private lateinit var tvNavDockDistClock: TextView
+    private lateinit var btnNavDockSparkle: View
+    private lateinit var btnNavDockExit: Button
+
     // Student Chips (Daniel, Johan, Jie, Yu, Siling)
     private lateinit var chipDaniel: Button
     private lateinit var chipJohan: Button
@@ -244,6 +258,20 @@ class MainActivity : AppCompatActivity() {
         btnMoveToSafeZone = findViewById(R.id.btnMoveToSafeZone)
         btnMoveAllToSafeZone = findViewById(R.id.btnMoveAllToSafeZone)
 
+        // Google Maps Turn-by-Turn Navigation HUD bindings
+        gmapsNavOverlay = findViewById(R.id.gmapsNavOverlay)
+        tvNavOverlayArrow = findViewById(R.id.tvNavOverlayArrow)
+        tvNavOverlayDestName = findViewById(R.id.tvNavOverlayDestName)
+        tvNavOverlayThen = findViewById(R.id.tvNavOverlayThen)
+        btnNavCompass = findViewById(R.id.btnNavCompass)
+        btnNavSearch = findViewById(R.id.btnNavSearch)
+        btnNavSpeaker = findViewById(R.id.btnNavSpeaker)
+        btnNavRoutes = findViewById(R.id.btnNavRoutes)
+        tvNavDockEta = findViewById(R.id.tvNavDockEta)
+        tvNavDockDistClock = findViewById(R.id.tvNavDockDistClock)
+        btnNavDockSparkle = findViewById(R.id.btnNavDockSparkle)
+        btnNavDockExit = findViewById(R.id.btnNavDockExit)
+
         chipDaniel = findViewById(R.id.chipDaniel)
         chipJohan = findViewById(R.id.chipJohan)
         chipJie = findViewById(R.id.chipJie)
@@ -313,6 +341,32 @@ class MainActivity : AppCompatActivity() {
 
         btnMoveAllToSafeZone.setOnClickListener {
             toggleMoveAllToSafeZones()
+        }
+
+        // Google Maps Turn-by-Turn Navigation HUD listeners
+        btnNavDockExit.setOnClickListener {
+            stopActiveNavigation()
+        }
+        btnNavCompass.setOnClickListener {
+            val st = students[activeStudentIndex]
+            if (::mapWebView.isInitialized && isMapLoaded) {
+                mapWebView.evaluateJavascript("centerMap(${st.lat}, ${st.lng}, 17);", null)
+            }
+        }
+        btnNavSearch.setOnClickListener {
+            Toast.makeText(this, "Navigating toward: ${tvNavOverlayDestName.text}", Toast.LENGTH_SHORT).show()
+        }
+        btnNavSpeaker.setOnClickListener {
+            Toast.makeText(this, "Voice Guidance: Follow the blue navigation arrow toward the safe haven", Toast.LENGTH_SHORT).show()
+        }
+        btnNavRoutes.setOnClickListener {
+            val st = students[activeStudentIndex]
+            if (::mapWebView.isInitialized && isMapLoaded) {
+                mapWebView.evaluateJavascript("centerMap(${st.lat}, ${st.lng}, 15);", null)
+            }
+        }
+        btnNavDockSparkle.setOnClickListener {
+            Toast.makeText(this, "SafePath Assistant: Pedestrian path clear away from hazard zone", Toast.LENGTH_SHORT).show()
         }
 
         switchAccessibility.setOnCheckedChangeListener { _, isChecked ->
@@ -766,11 +820,32 @@ class MainActivity : AppCompatActivity() {
         updateAdminFleetDisplay()
     }
 
-    private fun toggleMoveActiveStudentToSafeZone() {
+    private fun calculateBearing(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
+        val phi1 = Math.toRadians(lat1)
+        val phi2 = Math.toRadians(lat2)
+        val deltaLambda = Math.toRadians(lon2 - lon1)
+        val y = Math.sin(deltaLambda) * Math.cos(phi2)
+        val x = Math.cos(phi1) * Math.sin(phi2) - Math.sin(phi1) * Math.cos(phi2) * Math.cos(deltaLambda)
+        val bearing = Math.toDegrees(Math.atan2(y, x)).toFloat()
+        return (bearing + 360f) % 360f
+    }
+
+    private fun stopActiveNavigation() {
         if (moveRunnable != null) {
             mainHandler.removeCallbacks(moveRunnable!!)
             moveRunnable = null
-            btnMoveToSafeZone.text = "🏃 Move to Safe Zone"
+        }
+        btnMoveToSafeZone.text = "🏃 Move to Safe Zone"
+        gmapsNavOverlay.visibility = View.GONE
+        if (::mapWebView.isInitialized && isMapLoaded) {
+            mapWebView.evaluateJavascript("stopNavPuck();", null)
+        }
+        refreshMapDisplay()
+    }
+
+    private fun toggleMoveActiveStudentToSafeZone() {
+        if (moveRunnable != null) {
+            stopActiveNavigation()
             return
         }
 
@@ -802,10 +877,29 @@ class MainActivity : AppCompatActivity() {
         var stepIdx = 0
         btnMoveToSafeZone.text = "⏹️ Stop Moving"
 
+        // Activate Google Maps Navigation HUD overlay matching media_1790888545376.png
+        gmapsNavOverlay.visibility = View.VISIBLE
+        tvNavOverlayDestName.text = route.destinationSafeZone.name
+        tvNavOverlayThen.text = "Then ↰ Safe Assembly Corridor"
+        tvNavDockEta.text = "${route.estimatedTimeMinutes} min"
+        val clockArrival = java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(System.currentTimeMillis() + route.estimatedTimeMinutes * 60 * 1000L))
+        tvNavDockDistClock.text = "${route.totalDistanceMeters.toInt()} m · $clockArrival"
+
+        val initialBearing = if (fineSteps.isNotEmpty()) {
+            calculateBearing(st.lat, st.lng, fineSteps[0].first, fineSteps[0].second)
+        } else 0f
+        if (::mapWebView.isInitialized && isMapLoaded) {
+            mapWebView.evaluateJavascript("setNavPuck(${st.lat}, ${st.lng}, $initialBearing);", null)
+        }
+
         moveRunnable = object : Runnable {
             override fun run() {
                 if (stepIdx < fineSteps.size) {
                     val pt = fineSteps[stepIdx]
+                    val bearing = if (stepIdx + 1 < fineSteps.size) {
+                        calculateBearing(pt.first, pt.second, fineSteps[stepIdx + 1].first, fineSteps[stepIdx + 1].second)
+                    } else 0f
+
                     st.lat = pt.first
                     st.lng = pt.second
                     stepIdx++
@@ -826,13 +920,20 @@ class MainActivity : AppCompatActivity() {
                     st.distanceMeters = remainingMeters.toInt()
                     st.estMinutes = remainingMins
 
+                    // Update Google Maps HUD dynamically
+                    tvNavDockEta.text = "$remainingMins min"
+                    val stepArrival = java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(System.currentTimeMillis() + remainingMins * 60 * 1000L))
+                    tvNavDockDistClock.text = "${remainingMeters.toInt()} m · $stepArrival"
+
+                    if (::mapWebView.isInitialized && isMapLoaded) {
+                        mapWebView.evaluateJavascript("setNavPuck(${st.lat}, ${st.lng}, $bearing);", null)
+                    }
+
                     evaluateHazardAndCalculateRoute(switchAccessibility.isChecked)
                     syncLocationToServer(st)
                     mainHandler.postDelayed(this, 600L)
                 } else {
-                    mainHandler.removeCallbacks(this)
-                    moveRunnable = null
-                    btnMoveToSafeZone.text = "🏃 Move to Safe Zone"
+                    stopActiveNavigation()
                     st.distanceMeters = 0
                     st.estMinutes = 0
                     st.inHazard = false
@@ -857,7 +958,14 @@ class MainActivity : AppCompatActivity() {
         data class Plan(val student: StudentState, val steps: List<Pair<Double, Double>>, var stepIdx: Int = 0, var done: Boolean = false, val destName: String)
         val plans = mutableListOf<Plan>()
 
+        // Check each student: ONLY MOVE STUDENTS IN THE AFFECTED HAZARD AREA!
+        // "and also check if the students is not in the affected area, move all do not change the students positions that not in affected area"
         for (s in students) {
+            if (!s.inHazard) {
+                // DO NOT change positions of students outside the affected hazard area!
+                continue
+            }
+
             val route = pathfinder.generateSafeRoute(s.lat, s.lng, activeAlerts, switchAccessibility.isChecked)
             if (route != null) {
                 s.targetHaven = route.destinationSafeZone.name
@@ -878,10 +986,12 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 plans.add(Plan(s, fine, 0, false, route.destinationSafeZone.name))
-            } else {
-                s.targetHaven = ""
-                plans.add(Plan(s, emptyList(), 0, true, "Safe Zone"))
             }
+        }
+
+        if (plans.isEmpty()) {
+            Toast.makeText(this, "All students are already safe outside the affected hazard area. No positions changed.", Toast.LENGTH_SHORT).show()
+            return
         }
 
         btnMoveAllToSafeZone.text = "⏹️ Stop All"
@@ -931,7 +1041,7 @@ class MainActivity : AppCompatActivity() {
                     mainHandler.removeCallbacks(this)
                     moveAllRunnable = null
                     btnMoveAllToSafeZone.text = "👥 Move All"
-                    Toast.makeText(this@MainActivity, "🎉 All Students Safely Evacuated to Safe Havens!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@MainActivity, "🎉 All Students In Hazard Area Safely Evacuated to Safe Havens!", Toast.LENGTH_LONG).show()
                 }
             }
         }

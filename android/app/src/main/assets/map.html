@@ -122,7 +122,42 @@
       }
     });
 
+    var isNavigating = false;
+    var currentNavBearing = 0;
+
+    function setNavPuck(lat, lng, bearing) {
+      isNavigating = true;
+      currentNavBearing = bearing || 0;
+      var html = '<div style="position:relative; width:44px; height:44px; display:flex; align-items:center; justify-content:center;">' +
+                   '<div style="background:#ffffff; border-radius:50%; width:40px; height:40px; box-shadow:0 4px 14px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; border:2px solid #ffffff;">' +
+                     '<div style="width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent; border-bottom:20px solid #1a73e8; transform:rotate(' + currentNavBearing + 'deg); filter:drop-shadow(0 2px 3px rgba(0,0,0,0.2));"></div>' +
+                   '</div>' +
+                 '</div>';
+
+      var icon = L.divIcon({
+        className: '',
+        html: html,
+        iconSize: [44, 44],
+        iconAnchor: [22, 22]
+      });
+
+      if (!userMarker) {
+        userMarker = L.marker([lat, lng], { icon: icon, zIndexOffset: 3000 }).addTo(map);
+      } else {
+        userMarker.setLatLng([lat, lng]);
+        userMarker.setIcon(icon);
+        userMarker.setZIndexOffset(3000);
+      }
+      map.panTo([lat, lng]);
+    }
+
+    function stopNavPuck() {
+      isNavigating = false;
+    }
+
     function updateUser(name, lat, lng, inHazard) {
+      if (isNavigating) return; // In navigation mode, nav puck takes precedence
+
       var pinClass = inHazard ? 'user-pin danger' : 'user-pin';
       var statusIcon = inHazard ? '🚨' : '🟢';
       var html = '<div style="position:relative;">' +
