@@ -7,6 +7,31 @@
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/leaflet.css" />
   <script src="/leaflet.js"></script>
+  <style>
+    .scenario-chip {
+      font-size: 0.76rem !important;
+      padding: 7px 9px !important;
+      text-align: left !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      border-radius: 6px !important;
+      transition: all 0.15s ease !important;
+      background: #ffffff !important;
+      border: 1px solid #cccccc !important;
+      cursor: pointer !important;
+    }
+    .scenario-chip:hover {
+      background: #121212 !important;
+      color: #ffffff !important;
+      border-color: #121212 !important;
+      transform: translateY(-1px);
+    }
+    .scenario-chip:hover .badge {
+      border-color: #ffffff !important;
+      color: #ffffff !important;
+    }
+  </style>
 </head>
 <body>
 
@@ -75,21 +100,60 @@
           <span class="badge badge-danger">Dispatch</span>
         </div>
 
-        <!-- Quick Scenario Buttons -->
-        <div class="form-group">
-          <label class="form-label">Quick Emergency Scenarios</label>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-            <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:6px;" onclick="loadScenario('hazmat')">
-              Chem Spill
+        <!-- Quick Emergency Scenarios (All 12 Types) -->
+        <div class="form-group" style="margin-bottom: 16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <label class="form-label" style="margin-bottom:0; font-weight:700;">Quick Emergency Scenarios (12 Types)</label>
+            <span class="badge" style="font-size:0.68rem;">1-Click Setup</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-height: 230px; overflow-y: auto; padding-right: 3px;">
+            <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Hazardous Materials')">
+              <span>☣️ HazMat Spill</span>
+              <span class="badge badge-danger" style="font-size:0.62rem; padding:1px 5px;">CRITICAL</span>
             </button>
-            <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:6px;" onclick="loadScenario('wildfire')">
-              Wildfire
+            <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Wildfire')">
+              <span>🔥 Wildfire</span>
+              <span class="badge badge-danger" style="font-size:0.62rem; padding:1px 5px;">CRITICAL</span>
             </button>
-            <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:6px;" onclick="loadScenario('earthquake')">
-              Earthquake
+            <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Earthquake')">
+              <span>🏚️ Earthquake</span>
+              <span class="badge badge-danger" style="font-size:0.62rem; padding:1px 5px;">CRITICAL</span>
             </button>
-            <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:6px;" onclick="loadScenario('flood')">
-              Flash Flood
+            <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Tsunami')">
+              <span>🌊 Tsunami</span>
+              <span class="badge badge-danger" style="font-size:0.62rem; padding:1px 5px;">CRITICAL</span>
+            </button>
+            <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Volcano')">
+              <span>🌋 Volcano</span>
+              <span class="badge badge-danger" style="font-size:0.62rem; padding:1px 5px;">CRITICAL</span>
+            </button>
+            <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Radiation')">
+              <span>☢️ Radiation</span>
+              <span class="badge badge-danger" style="font-size:0.62rem; padding:1px 5px;">CRITICAL</span>
+            </button>
+            <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Flood')">
+              <span>🌧️ Flash Flood</span>
+              <span class="badge" style="font-size:0.62rem; padding:1px 5px; border-color:#888;">WARNING</span>
+            </button>
+            <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Thunderstorm')">
+              <span>⚡ Thunderstorm</span>
+              <span class="badge" style="font-size:0.62rem; padding:1px 5px; border-color:#888;">WARNING</span>
+            </button>
+            <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('High Wind')">
+              <span>💨 High Wind</span>
+              <span class="badge" style="font-size:0.62rem; padding:1px 5px; border-color:#888;">WARNING</span>
+            </button>
+            <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Public Health Emergency')">
+              <span>🏥 Health Alert</span>
+              <span class="badge" style="font-size:0.62rem; padding:1px 5px; border-color:#888;">WARNING</span>
+            </button>
+            <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Extreme Heat')">
+              <span>☀️ Extreme Heat</span>
+              <span class="badge" style="font-size:0.62rem; padding:1px 5px; color:#666;">ADVISORY</span>
+            </button>
+            <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Air Quality')">
+              <span>🌫️ Air Quality</span>
+              <span class="badge" style="font-size:0.62rem; padding:1px 5px; color:#666;">ADVISORY</span>
             </button>
           </div>
         </div>
@@ -302,61 +366,63 @@
       }
     }
 
-    const alertCategoryDefaults = {
-      'Hazardous Materials': { radius: 200, severity: 'CRITICAL', instructions: 'Toxic chemical vapor plume reported. Evacuate UPWIND immediately.' },
-      'Wildfire': { radius: 220, severity: 'CRITICAL', instructions: 'Approaching brush fire. Evacuate downwind away from dry vegetation.' },
-      'Earthquake': { radius: 200, severity: 'CRITICAL', instructions: 'DROP, COVER, AND HOLD ON. Evacuate structurally compromised buildings to open quads.' },
-      'Tsunami': { radius: 300, severity: 'CRITICAL', instructions: 'Inundation risk detected. Immediately proceed uphill to elevated shelters.' },
-      'Extreme Heat': { radius: 400, severity: 'ADVISORY', instructions: 'Limit outdoor exposure. Hydrate at emergency water stations and seek air-conditioned centers.' },
-      'Flood': { radius: 200, severity: 'WARNING', instructions: 'Flash flooding across campus lowlands. Move to high-ground assembly fields.' },
-      'Thunderstorm': { radius: 350, severity: 'WARNING', instructions: 'Lightning risk. Cease outdoor activities and seek fully enclosed buildings.' },
-      'High Wind': { radius: 300, severity: 'WARNING', instructions: 'Gale-force gusts. Beware of flying debris. Stay indoors.' },
-      'Volcano': { radius: 400, severity: 'CRITICAL', instructions: 'Heavy ashfall reported. Wear particle masks and proceed to filtration shelters.' },
-      'Air Quality': { radius: 400, severity: 'ADVISORY', instructions: 'Hazardous AQI > 300. Individuals with respiratory conditions remain indoors.' },
-      'Radiation': { radius: 220, severity: 'CRITICAL', instructions: 'Radiological contamination detected. Proceed to designated subterranean shelters.' },
-      'Public Health Emergency': { radius: 200, severity: 'WARNING', instructions: 'Biohazard containment perimeter active. Follow physical distancing protocols.' }
+    const scenarioPresets = {
+      'Hazardous Materials': { lat: 33.8800, lng: -117.8860, radius: 200, severity: 'CRITICAL', instructions: 'Toxic chemical vapor plume reported. Evacuate UPWIND immediately.' },
+      'Wildfire': { lat: 33.8875, lng: -117.8845, radius: 220, severity: 'CRITICAL', instructions: 'Approaching brush fire. Evacuate downwind away from dry vegetation.' },
+      'Earthquake': { lat: 33.8813, lng: -117.8854, radius: 200, severity: 'CRITICAL', instructions: 'DROP, COVER, AND HOLD ON. Evacuate structurally compromised buildings to open quads.' },
+      'Tsunami': { lat: 33.8785, lng: -117.8850, radius: 250, severity: 'CRITICAL', instructions: 'Inundation risk detected. Immediately proceed uphill to elevated shelters.' },
+      'Volcano': { lat: 33.8820, lng: -117.8850, radius: 300, severity: 'CRITICAL', instructions: 'Heavy ashfall reported. Wear particle masks and proceed to filtration shelters.' },
+      'Radiation': { lat: 33.8829, lng: -117.8828, radius: 200, severity: 'CRITICAL', instructions: 'Radiological contamination detected. Proceed to designated subterranean shelters.' },
+      'Flood': { lat: 33.8845, lng: -117.8890, radius: 220, severity: 'WARNING', instructions: 'Flash flooding across campus lowlands. Move to high-ground assembly fields.' },
+      'Thunderstorm': { lat: 33.8835, lng: -117.8853, radius: 250, severity: 'WARNING', instructions: 'Lightning risk. Cease outdoor activities and seek fully enclosed buildings.' },
+      'High Wind': { lat: 33.8820, lng: -117.8885, radius: 250, severity: 'WARNING', instructions: 'Gale-force gusts. Beware of flying debris. Stay indoors.' },
+      'Public Health Emergency': { lat: 33.8835, lng: -117.8870, radius: 180, severity: 'WARNING', instructions: 'Biohazard containment perimeter active. Follow physical distancing protocols.' },
+      'Extreme Heat': { lat: 33.8810, lng: -117.8875, radius: 350, severity: 'ADVISORY', instructions: 'Limit outdoor exposure. Hydrate at emergency water stations and seek air-conditioned centers.' },
+      'Air Quality': { lat: 33.8808, lng: -117.8835, radius: 300, severity: 'ADVISORY', instructions: 'Hazardous AQI > 300. Individuals with respiratory conditions remain indoors.' },
+      // Shorthand aliases
+      'hazmat': { lat: 33.8800, lng: -117.8860, radius: 200, severity: 'CRITICAL', type: 'Hazardous Materials' },
+      'wildfire': { lat: 33.8875, lng: -117.8845, radius: 220, severity: 'CRITICAL', type: 'Wildfire' },
+      'earthquake': { lat: 33.8813, lng: -117.8854, radius: 200, severity: 'CRITICAL', type: 'Earthquake' },
+      'flood': { lat: 33.8845, lng: -117.8890, radius: 220, severity: 'WARNING', type: 'Flood' }
     };
 
     function onAlertTypeChange() {
       const type = document.getElementById('admin-alert-type').value;
       const radiusInput = document.getElementById('admin-radius');
+      const preset = scenarioPresets[type];
 
-      const template = adminApp?.campusData?.emergencyTypes?.find(t => t.id === type) || alertCategoryDefaults[type];
-      if (template) {
-        radiusInput.value = template.defaultRadius || template.radius || 200;
+      if (preset) {
+        radiusInput.value = preset.radius || 200;
         onRadiusChange(radiusInput.value);
-        document.getElementById('admin-severity').value = template.severity || 'CRITICAL';
+        document.getElementById('admin-severity').value = preset.severity || 'CRITICAL';
+        if (adminApp) {
+          const lat = parseFloat(document.getElementById('admin-lat').value) || preset.lat;
+          const lng = parseFloat(document.getElementById('admin-lng').value) || preset.lng;
+          adminApp.setAdminPin(lat, lng, parseFloat(radiusInput.value));
+        }
       }
     }
 
     function loadScenario(key) {
-      if (key === 'hazmat') {
-        document.getElementById('admin-alert-type').value = 'Hazardous Materials';
-        document.getElementById('admin-lat').value = '33.8800';
-        document.getElementById('admin-lng').value = '-117.8860';
-        document.getElementById('admin-radius').value = '180';
-      } else if (key === 'wildfire') {
-        document.getElementById('admin-alert-type').value = 'Wildfire';
-        document.getElementById('admin-lat').value = '33.8875';
-        document.getElementById('admin-lng').value = '-117.8845';
-        document.getElementById('admin-radius').value = '200';
-      } else if (key === 'earthquake') {
-        document.getElementById('admin-alert-type').value = 'Earthquake';
-        document.getElementById('admin-lat').value = '33.8813';
-        document.getElementById('admin-lng').value = '-117.8854';
-        document.getElementById('admin-radius').value = '200';
-      } else if (key === 'flood') {
-        document.getElementById('admin-alert-type').value = 'Flood';
-        document.getElementById('admin-lat').value = '33.8845';
-        document.getElementById('admin-lng').value = '-117.8890';
-        document.getElementById('admin-radius').value = '180';
+      let type = key;
+      let preset = scenarioPresets[key];
+      if (preset && preset.type) {
+        type = preset.type;
       }
-      onAlertTypeChange();
-      const lat = parseFloat(document.getElementById('admin-lat').value);
-      const lng = parseFloat(document.getElementById('admin-lng').value);
-      const rad = parseFloat(document.getElementById('admin-radius').value);
+      if (!preset) {
+        preset = scenarioPresets['Hazardous Materials'];
+        type = 'Hazardous Materials';
+      }
+
+      document.getElementById('admin-alert-type').value = type;
+      document.getElementById('admin-severity').value = preset.severity || 'CRITICAL';
+      document.getElementById('admin-lat').value = preset.lat.toFixed(4);
+      document.getElementById('admin-lng').value = preset.lng.toFixed(4);
+      document.getElementById('admin-radius').value = preset.radius;
+      onRadiusChange(preset.radius);
+
       if (adminApp) {
-        adminApp.setAdminPin(lat, lng, rad);
+        adminApp.setAdminPin(preset.lat, preset.lng, preset.radius);
       }
     }
 

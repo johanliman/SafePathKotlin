@@ -94,7 +94,7 @@
     .itinerary-steps {
       padding: 12px 18px;
       background: #ffffff;
-      display: none;
+      display: block;
     }
     .itinerary-step {
       display: flex;
@@ -275,62 +275,8 @@
       </div>
     </div>
 
-    <!-- GOOGLE MAPS-STYLE NAVIGATION HUD CARD -->
-    <div id="gmaps-nav-hud" class="gmaps-nav-card">
-      <div id="gmaps-header-bar" class="gmaps-nav-header">
-        <div id="gmaps-maneuver-icon" class="gmaps-maneuver-icon">⬆️</div>
-        <div class="gmaps-instruction-wrap">
-          <div id="gmaps-primary-instruction" class="gmaps-instruction-primary">Proceed on Titan Walkway toward Safe Haven</div>
-          <div id="gmaps-secondary-instruction" class="gmaps-instruction-secondary">Follow pedestrian evacuation path to campus safe haven</div>
-        </div>
-        <div>
-          <span id="gmaps-status-pill" class="badge badge-success" style="font-size:0.8rem; padding:4px 10px;">ALL CLEAR</span>
-        </div>
-      </div>
-
-      <div class="gmaps-stats-bar">
-        <div style="display:flex; align-items:baseline;">
-          <span id="gmaps-eta-text" class="gmaps-eta-badge">~2 min</span>
-          <span id="gmaps-dist-text" class="gmaps-dist-badge">(140 meters)</span>
-        </div>
-        <div id="gmaps-haven-name" class="gmaps-destination-badge">
-          🛡️ North Quad Assembly Field (SZ1)
-        </div>
-        <button type="button" class="itinerary-toggle" onclick="toggleItinerary()">
-          <span id="itinerary-toggle-icon">▼</span> Step-by-Step Guidance
-        </button>
-      </div>
-
-      <!-- Expandable Turn-by-Turn Guidance Steps -->
-      <div id="gmaps-itinerary" class="itinerary-steps">
-        <div class="itinerary-step">
-          <div class="itinerary-step-icon">📍</div>
-          <div class="itinerary-step-text">Current Position (Student Location)</div>
-          <div class="itinerary-step-dist">Start</div>
-        </div>
-        <div class="itinerary-step">
-          <div class="itinerary-step-icon">🚶</div>
-          <div class="itinerary-step-text">Head along main CSUF Walkway away from danger sector</div>
-          <div class="itinerary-step-dist">65 m</div>
-        </div>
-        <div class="itinerary-step">
-          <div class="itinerary-step-icon">↗️</div>
-          <div class="itinerary-step-text">Turn slight right toward Designated Assembly Point</div>
-          <div class="itinerary-step-dist">75 m</div>
-        </div>
-        <div class="itinerary-step">
-          <div class="itinerary-step-icon">🏁</div>
-          <div class="itinerary-step-text"><strong>Arrive at Safe Haven (SZ1)</strong> - Triage & emergency shelter ready</div>
-          <div class="itinerary-step-dist">Destination</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Hidden fallback container for engine backward compatibility -->
-    <div id="evacuation-display-box" style="display:none;"></div>
-
-    <!-- STUDENT MAP VIEW WITH GOOGLE MAPS NAVIGATION OVERLAY -->
-    <div class="card" style="padding: 12px; background:#ffffff;">
+    <!-- STUDENT MAP VIEW WITH GOOGLE MAPS NAVIGATION OVERLAY (MAP FIRST) -->
+    <div class="card" style="padding: 12px; background:#ffffff; margin-bottom: 16px;">
       <div id="user-map-container" style="position:relative; height: 560px; border-radius: 8px; overflow: hidden;">
         <div id="user-map" class="map-container" style="width: 100%; height: 100%; border-radius: 8px;"></div>
 
@@ -406,13 +352,62 @@
             🏃 Move to Nearest Safe Zone
           </button>
         </div>
-
-        <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500; color: #666666; font-size: 0.88rem;">
-          <input type="checkbox" onchange="window.safePathApp.toggleAccessibility(this.checked)">
-          ♿ Wheelchair Accessible (Ramps Only, No Stairs)
-        </label>
       </div>
     </div>
+
+    <!-- GOOGLE MAPS-STYLE NAVIGATION HUD CARD & STEP-BY-STEP GUIDANCE (THEN THIS AT BOTTOM, AUTO-EXTENDED) -->
+    <div id="gmaps-nav-hud" class="gmaps-nav-card">
+      <div id="gmaps-header-bar" class="gmaps-nav-header">
+        <div id="gmaps-maneuver-icon" class="gmaps-maneuver-icon">⬆️</div>
+        <div class="gmaps-instruction-wrap">
+          <div id="gmaps-primary-instruction" class="gmaps-instruction-primary">Proceed on Titan Walkway toward Safe Haven</div>
+          <div id="gmaps-secondary-instruction" class="gmaps-instruction-secondary">Follow pedestrian evacuation path to campus safe haven</div>
+        </div>
+        <div>
+          <span id="gmaps-status-pill" class="badge badge-success" style="font-size:0.8rem; padding:4px 10px;">ALL CLEAR</span>
+        </div>
+      </div>
+
+      <div class="gmaps-stats-bar">
+        <div style="display:flex; align-items:baseline;">
+          <span id="gmaps-eta-text" class="gmaps-eta-badge">~2 min</span>
+          <span id="gmaps-dist-text" class="gmaps-dist-badge">(140 meters)</span>
+        </div>
+        <div id="gmaps-haven-name" class="gmaps-destination-badge">
+          🛡️ North Quad Assembly Field (SZ1)
+        </div>
+        <button type="button" class="itinerary-toggle" onclick="toggleItinerary()">
+          <span id="itinerary-toggle-icon">▲</span> Step-by-Step Guidance
+        </button>
+      </div>
+
+      <!-- Expandable Turn-by-Turn Guidance Steps (Auto-extended) -->
+      <div id="gmaps-itinerary" class="itinerary-steps" style="display: block;">
+        <div class="itinerary-step">
+          <div class="itinerary-step-icon">📍</div>
+          <div class="itinerary-step-text">Current Position (Student Location)</div>
+          <div class="itinerary-step-dist">Start</div>
+        </div>
+        <div class="itinerary-step">
+          <div class="itinerary-step-icon">🚶</div>
+          <div class="itinerary-step-text">Head along main CSUF Walkway away from danger sector</div>
+          <div class="itinerary-step-dist">65 m</div>
+        </div>
+        <div class="itinerary-step">
+          <div class="itinerary-step-icon">↗️</div>
+          <div class="itinerary-step-text">Turn slight right toward Designated Assembly Point</div>
+          <div class="itinerary-step-dist">75 m</div>
+        </div>
+        <div class="itinerary-step">
+          <div class="itinerary-step-icon">🏁</div>
+          <div class="itinerary-step-text"><strong>Arrive at Safe Haven (SZ1)</strong> - Triage & emergency shelter ready</div>
+          <div class="itinerary-step-dist">Destination</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden fallback container for engine backward compatibility -->
+    <div id="evacuation-display-box" style="display:none;"></div>
 
   </div>
 
@@ -459,7 +454,7 @@
     function toggleItinerary() {
       const box = document.getElementById('gmaps-itinerary');
       const icon = document.getElementById('itinerary-toggle-icon');
-      if (box.style.display === 'block') {
+      if (box.style.display !== 'none') {
         box.style.display = 'none';
         icon.textContent = '▼';
       } else {

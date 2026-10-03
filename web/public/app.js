@@ -229,10 +229,10 @@ class SafePathEngine {
 
     const pinHtml = `
       <div style="position:relative; cursor:grab;" title="Double-click to remove epicenter pin">
-        <div style="background:#121212; width:34px; height:34px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 2px 10px rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px;">
+        <div style="background:#dc2626; width:34px; height:34px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 2px 10px rgba(220,38,38,0.45); display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px;">
           🎯
         </div>
-        <div style="position:absolute; top:-26px; left:-55px; background:#121212; color:#ffffff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; border:1px solid #ffffff; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.25);">
+        <div style="position:absolute; top:-26px; left:-55px; background:#dc2626; color:#ffffff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; border:1px solid #ffffff; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.25);">
           📍 EPICENTER PIN
         </div>
       </div>
@@ -281,11 +281,11 @@ class SafePathEngine {
     } else {
       this.adminPreviewCircle = L.circle([lat, lng], {
         radius: radius,
-        color: '#121212',
+        color: '#dc2626',
         dashArray: '6, 6',
-        fillColor: '#121212',
-        fillOpacity: 0.12,
-        weight: 2
+        fillColor: '#ef4444',
+        fillOpacity: 0.16,
+        weight: 2.5
       }).addTo(this.map);
       this.adminPreviewCircle.bindPopup(`<strong>📍 Hazard Geofence Preview</strong><br/>Radius: ${radius}m<br/><em>Click to set epicenter, double-click to remove pin</em>`);
     }
@@ -1580,17 +1580,17 @@ class SafePathEngine {
     this.activeAlerts.forEach(alert => {
       if (!alert.active) return;
 
-      // Monochrome Hazard Zone Styling
+      // Red Dashed Hazard Zone Alert Styling
       const circle = L.circle([alert.latitude, alert.longitude], {
         radius: alert.radiusMeters,
-        color: '#121212',
+        color: '#dc2626',
         dashArray: '6, 6',
-        fillColor: '#121212',
-        fillOpacity: 0.15,
-        weight: 2
+        fillColor: '#ef4444',
+        fillOpacity: 0.16,
+        weight: 2.5
       }).addTo(this.map);
 
-      circle.bindPopup(`<strong>${alert.icon || '⚠️'} ${alert.name}</strong><br/><span style="color:#121212; font-weight:700;">HAZARD ZONE</span><br/>Radius: ${alert.radiusMeters}m`);
+      circle.bindPopup(`<strong>${alert.icon || '⚠️'} ${alert.name}</strong><br/><span style="color:#dc2626; font-weight:700;">ACTIVE HAZARD ZONE</span><br/>Radius: ${alert.radiusMeters}m`);
       this.hazardCircles.set(alert.id, circle);
     });
   }

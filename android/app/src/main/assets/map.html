@@ -232,11 +232,11 @@
       }
       hazardCircle = L.circle([lat, lng], {
         radius: radiusMeters,
-        color: '#121212',
+        color: '#dc2626',
         dashArray: '6, 6',
-        fillColor: '#121212',
-        fillOpacity: 0.15,
-        weight: 2
+        fillColor: '#ef4444',
+        fillOpacity: 0.16,
+        weight: 2.5
       }).addTo(map);
       hazardCircle.bindPopup('<strong>HAZARD ZONE: ' + name + '</strong><br/>Radius: ' + radiusMeters + 'm');
     }
