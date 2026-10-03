@@ -40,6 +40,9 @@ class SafePathEngine {
     this.userLat = options.lat || (storedUser && storedUser.latitude) || initialUser.lat;
     this.userLng = options.lng || (storedUser && storedUser.longitude) || initialUser.lng;
 
+    this.initialCenter = options.initialCenter || null;
+    this.initialZoom = options.initialZoom || 16;
+
     this.campusData = null;
     this.map = null;
     this.userMarker = null;
@@ -55,7 +58,7 @@ class SafePathEngine {
     this.pollInterval = null;
     this.isNavigating = false;
 
-    this.init();
+    this.readyPromise = this.init();
   }
 
   async init() {
@@ -126,9 +129,12 @@ class SafePathEngine {
     const mapElement = document.getElementById(this.mapId);
     if (!mapElement) return;
 
+    const defaultCampusCenter = [33.8818, -117.8855];
+    const center = this.initialCenter || (this.role === 'admin' ? defaultCampusCenter : [this.userLat, this.userLng]);
+
     this.map = L.map(this.mapId, {
-      center: [this.userLat, this.userLng],
-      zoom: 16,
+      center: center,
+      zoom: this.initialZoom || 16,
       zoomControl: true,
       doubleClickZoom: false
     });
@@ -1988,6 +1994,11 @@ class SafePathEngine {
 
       this.renderAllStudentsOnMap();
       this.computeSafeRoute();
+
+      if (window.safePathAdmin && window.safePathAdmin !== this && window.safePathAdmin.students) {
+        window.safePathAdmin.students = JSON.parse(JSON.stringify(this.students));
+        window.safePathAdmin.renderAllStudentsOnMap();
+      }
 
       if (!anyRemaining) {
         clearInterval(this.moveAllInterval);

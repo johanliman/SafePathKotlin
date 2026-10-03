@@ -22,6 +22,16 @@
       border-radius: var(--radius-md);
       background: var(--bg-surface);
       padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .split-controls-header {
+      min-height: 226px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      margin-bottom: 8px;
+      box-sizing: border-box;
     }
   </style>
 </head>
@@ -50,114 +60,138 @@
       
       <!-- ================= LEFT: ADMIN OPERATIONS CENTER ================= -->
       <div class="panel-box">
-        <div class="card-header" style="margin-bottom: 8px; padding-bottom: 6px;">
-          <h3 class="card-title" style="font-size: 1.05rem;">
-            Admin Operations Center (EOC)
-          </h3>
-          <span class="badge badge-danger">Broadcast Center</span>
-        </div>
-
-        <!-- Quick Scenarios -->
-        <div style="display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;">
-          <button class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" onclick="setScenario('hazmat')">
-            Chem Spill
-          </button>
-          <button class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" onclick="setScenario('wildfire')">
-            Wildfire
-          </button>
-          <button class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" onclick="setScenario('earthquake')">
-            Earthquake
-          </button>
-          <button class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" onclick="setScenario('flood')">
-            Flash Flood
-          </button>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-          <div>
-            <label style="font-size: 0.72rem; color: #666666; font-weight: 700;">EMERGENCY CATEGORY</label>
-            <select id="split-admin-type" class="form-control" style="padding: 5px 8px; font-size: 0.8rem; width: 100%;">
-              <option value="Hazardous Materials">Hazardous Materials</option>
-              <option value="Wildfire">Wildfire</option>
-              <option value="Earthquake">Earthquake</option>
-              <option value="Tsunami">Tsunami</option>
-              <option value="Extreme Heat">Extreme Heat</option>
-              <option value="Flood">Flash Flood</option>
-              <option value="Thunderstorm">Thunderstorm</option>
-              <option value="High Wind">High Wind</option>
-              <option value="Volcano">Volcano</option>
-              <option value="Air Quality">Air Quality</option>
-              <option value="Radiation">Radiation</option>
-              <option value="Public Health Emergency">Public Health</option>
-            </select>
+        <div class="split-controls-header split-admin-header">
+          <div class="card-header" style="margin-bottom: 8px; padding-bottom: 6px;">
+            <h3 class="card-title" style="font-size: 1.05rem;">
+              Admin Operations Center (EOC)
+            </h3>
+            <span class="badge badge-danger">Broadcast Center</span>
           </div>
-          <div>
-            <label style="font-size: 0.72rem; color: #666666; font-weight: 700;">RADIUS: <span id="split-radius-label">220m</span></label>
-            <input type="range" id="split-admin-radius" min="50" max="600" step="25" value="220" style="width: 100%; accent-color: #121212;" oninput="onSplitRadiusChange(this.value)">
+
+          <!-- Quick Scenarios -->
+          <div style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
+            <button class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" onclick="setScenario('hazmat')">
+              Chem Spill
+            </button>
+            <button class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" onclick="setScenario('wildfire')">
+              Wildfire
+            </button>
+            <button class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" onclick="setScenario('earthquake')">
+              Earthquake
+            </button>
+            <button class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" onclick="setScenario('flood')">
+              Flash Flood
+            </button>
           </div>
-        </div>
 
-        <div style="display: flex; gap: 8px; margin-bottom: 10px; align-items: center;">
-          <input type="hidden" id="split-admin-lat" value="33.8800">
-          <input type="hidden" id="split-admin-lng" value="-117.8860">
-          
-          <button class="btn btn-primary" style="flex: 1; padding: 8px;" onclick="broadcastAlert()">
-            Dispatch Emergency Alert
-          </button>
-          <button class="btn btn-secondary" style="padding: 8px 12px;" onclick="clearAlerts()">
-            Clear Alerts
-          </button>
-          <button class="btn btn-secondary" style="padding: 8px 12px;" onclick="resetFleet()">
-            Reset Fleet
-          </button>
-        </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+            <div>
+              <label style="font-size: 0.72rem; color: #666666; font-weight: 700;">EMERGENCY CATEGORY</label>
+              <select id="split-admin-type" class="form-control" style="padding: 5px 8px; font-size: 0.8rem; width: 100%;">
+                <option value="Hazardous Materials">Hazardous Materials</option>
+                <option value="Wildfire">Wildfire</option>
+                <option value="Earthquake">Earthquake</option>
+                <option value="Tsunami">Tsunami</option>
+                <option value="Extreme Heat">Extreme Heat</option>
+                <option value="Flood">Flash Flood</option>
+                <option value="Thunderstorm">Thunderstorm</option>
+                <option value="High Wind">High Wind</option>
+                <option value="Volcano">Volcano</option>
+                <option value="Air Quality">Air Quality</option>
+                <option value="Radiation">Radiation</option>
+                <option value="Public Health Emergency">Public Health</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 0.72rem; color: #666666; font-weight: 700;">RADIUS: <span id="split-radius-label">220m</span></label>
+              <input type="range" id="split-admin-radius" min="50" max="600" step="25" value="220" style="width: 100%; accent-color: #121212;" oninput="onSplitRadiusChange(this.value)">
+            </div>
+          </div>
 
-        <!-- Interactive Map Pinning Callout -->
-        <div style="background:#fafafa; border:1px solid #eaeaea; padding:6px 10px; border-radius:6px; margin-bottom:8px; font-size:0.75rem; color:#121212; display:flex; justify-content:space-between; align-items:center;">
-          <span>📍 Click map to set epicenter. Double-click pin or map to remove.</span>
-          <span class="badge" style="font-size:0.68rem; padding:2px 6px;">MAP PINNING</span>
+          <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+            <input type="hidden" id="split-admin-lat" value="33.8800">
+            <input type="hidden" id="split-admin-lng" value="-117.8860">
+            
+            <button class="btn btn-primary" style="flex: 1; padding: 7px 10px; font-size: 0.82rem;" onclick="broadcastAlert()">
+              Dispatch Emergency Alert
+            </button>
+            <button class="btn btn-secondary" style="padding: 7px 12px; font-size: 0.82rem;" onclick="clearAlerts()">
+              Clear Alerts
+            </button>
+            <button class="btn btn-secondary" style="padding: 7px 12px; font-size: 0.82rem;" onclick="resetFleet()">
+              Reset Fleet
+            </button>
+          </div>
+
+          <!-- Interactive Map Pinning Callout -->
+          <div style="background:#fafafa; border:1px solid #eaeaea; padding:6px 10px; border-radius:6px; font-size:0.75rem; color:#121212; display:flex; justify-content:space-between; align-items:center;">
+            <span>📍 Click map to set epicenter. Double-click pin or map to remove.</span>
+            <span class="badge" style="font-size:0.68rem; padding:2px 6px;">MAP PINNING</span>
+          </div>
         </div>
 
         <div id="split-admin-map" class="map-container" style="height: 480px; border-radius: 8px;"></div>
+
+        <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #666666; min-height: 36px; padding: 0 4px; border-top: 1px solid #eaeaea; padding-top: 6px;">
+          <span>📍 <strong>CSUF Campus Center</strong> · Fullerton, CA</span>
+          <span>🛰️ Fleet Status: <strong>5 Active Students</strong></span>
+        </div>
       </div>
 
       <!-- ================= RIGHT: STUDENT PANEL ================= -->
       <div class="panel-box">
-        
-        <!-- Student Switcher Bar -->
-        <div style="margin-bottom: 8px;">
-          <div style="font-size: 0.76rem; font-weight: 700; color: #121212; text-transform: uppercase; margin-bottom: 4px;">
-            Select Student:
+        <div class="split-controls-header split-user-header">
+          <div class="card-header" style="margin-bottom: 8px; padding-bottom: 6px;">
+            <h3 class="card-title" style="font-size: 1.05rem;">
+              Student Safe Navigation
+            </h3>
+            <span class="badge badge-success">Live Telemetry</span>
           </div>
-          <div class="student-bar" style="padding: 2px 0 6px 0;">
-            <button class="student-chip active" data-email="d.wu@csu.fullerton.edu" onclick="switchStudentInDemo('d.wu@csu.fullerton.edu')">
-              Daniel
-            </button>
-            <button class="student-chip" data-email="johaliman@csu.fullerton.edu" onclick="switchStudentInDemo('johaliman@csu.fullerton.edu')">
-              Johan
-            </button>
-            <button class="student-chip" data-email="jchen102951@csu.fullerton.edu" onclick="switchStudentInDemo('jchen102951@csu.fullerton.edu')">
-              Jie
-            </button>
-            <button class="student-chip" data-email="yu-cheng.chang@csu.fullerton.edu" onclick="switchStudentInDemo('yu-cheng.chang@csu.fullerton.edu')">
-              Yu
-            </button>
-            <button class="student-chip" data-email="siling313@csu.fullerton.edu" onclick="switchStudentInDemo('siling313@csu.fullerton.edu')">
-              Siling
-            </button>
-          </div>
-        </div>
 
-        <!-- DIRECT NEAREST SAFE EVACUATION HAVEN CARD -->
-        <div id="evacuation-display-box" class="evacuation-card" style="margin-bottom: 8px; padding: 12px 16px;">
-          <!-- Dynamically populated with safe zone, distance, and time -->
+          <!-- Student Switcher Bar -->
+          <div style="margin-bottom: 8px;">
+            <div style="font-size: 0.72rem; font-weight: 700; color: #666666; text-transform: uppercase; margin-bottom: 4px;">
+              Select Student:
+            </div>
+            <div class="student-bar" style="padding: 2px 0 4px 0;">
+              <button class="student-chip active" data-email="d.wu@csu.fullerton.edu" onclick="switchStudentInDemo('d.wu@csu.fullerton.edu')">
+                Daniel
+              </button>
+              <button class="student-chip" data-email="johaliman@csu.fullerton.edu" onclick="switchStudentInDemo('johaliman@csu.fullerton.edu')">
+                Johan
+              </button>
+              <button class="student-chip" data-email="jchen102951@csu.fullerton.edu" onclick="switchStudentInDemo('jchen102951@csu.fullerton.edu')">
+                Jie
+              </button>
+              <button class="student-chip" data-email="yu-cheng.chang@csu.fullerton.edu" onclick="switchStudentInDemo('yu-cheng.chang@csu.fullerton.edu')">
+                Yu
+              </button>
+              <button class="student-chip" data-email="siling313@csu.fullerton.edu" onclick="switchStudentInDemo('siling313@csu.fullerton.edu')">
+                Siling
+              </button>
+            </div>
+          </div>
+
+          <!-- DIRECT NEAREST SAFE EVACUATION HAVEN CARD -->
+          <div id="evacuation-display-box" class="evacuation-card" style="padding: 10px 14px; border: 1px solid #eaeaea; background: #ffffff; margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.4rem;">🟢</span>
+                <div>
+                  <div style="font-size: 0.95rem; font-weight: 800; color: #121212;">Campus Status: All Clear</div>
+                  <div style="font-size: 0.8rem; color: #666666;">No active emergencies reported. You are in a safe zone.</div>
+                </div>
+              </div>
+              <span class="badge badge-success" style="font-size: 0.78rem; padding: 4px 10px;">🟢 NORMAL</span>
+            </div>
+          </div>
         </div>
 
         <!-- Student Map (Same height as Admin Map) -->
         <div id="split-user-map" class="map-container" style="height: 480px; border-radius: 8px;"></div>
 
         <!-- Quick Controls: Move to Safe Zone & Move All buttons -->
-        <div class="quick-bar" style="margin-top: 8px; padding: 0; display: flex; justify-content: flex-start; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div class="quick-bar" style="margin-top: 8px; padding: 0; display: flex; justify-content: flex-start; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 36px; border-top: 1px solid #eaeaea; padding-top: 6px;">
           <button id="btn-evacuate-move" class="btn btn-primary" style="font-size: 0.82rem; padding: 7px 14px; font-weight: 700;" onclick="window.safePathApp.toggleMoveToSafeZone()">
             Move to Safe Zone
           </button>
@@ -176,6 +210,26 @@
   <script>
     let adminEngine;
     let userEngine;
+    const campusCenter = [33.8818, -117.8855];
+    const campusZoom = 16;
+
+    function alignSplitHeaders() {
+      const leftH = document.querySelector('.split-admin-header');
+      const rightH = document.querySelector('.split-user-header');
+      if (!leftH || !rightH) return;
+      if (window.innerWidth <= 1080) {
+        leftH.style.minHeight = 'auto';
+        rightH.style.minHeight = 'auto';
+        return;
+      }
+      leftH.style.minHeight = '0px';
+      rightH.style.minHeight = '0px';
+      const maxH = Math.max(leftH.scrollHeight, rightH.scrollHeight, 226);
+      leftH.style.minHeight = maxH + 'px';
+      rightH.style.minHeight = maxH + 'px';
+      if (adminEngine && adminEngine.map) adminEngine.map.invalidateSize();
+      if (userEngine && userEngine.map) userEngine.map.invalidateSize();
+    }
 
     function switchStudentInDemo(email) {
       if (userEngine) {
@@ -185,27 +239,78 @@
         adminEngine.students = JSON.parse(JSON.stringify(userEngine.students));
         adminEngine.renderAllStudentsOnMap();
       }
+      alignSplitHeaders();
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      adminEngine = new SafePathEngine({ role: 'admin', mapId: 'split-admin-map' });
+    document.addEventListener('DOMContentLoaded', async () => {
+      adminEngine = new SafePathEngine({
+        role: 'admin',
+        mapId: 'split-admin-map',
+        lat: campusCenter[0],
+        lng: campusCenter[1],
+        initialCenter: campusCenter,
+        initialZoom: campusZoom
+      });
+
       userEngine = new SafePathEngine({
         role: 'user',
         mapId: 'split-user-map',
         email: 'd.wu@csu.fullerton.edu',
         name: 'Daniel',
         lat: 33.8813,
-        lng: -117.8854
+        lng: -117.8854,
+        initialCenter: campusCenter,
+        initialZoom: campusZoom
       });
 
       window.safePathApp = userEngine;
       window.safePathAdmin = adminEngine;
 
+      if (adminEngine.readyPromise && userEngine.readyPromise) {
+        await Promise.all([adminEngine.readyPromise, userEngine.readyPromise]);
+      }
+
+      // Ensure both maps start at identical campus center & zoom
+      if (adminEngine.map) adminEngine.map.setView(campusCenter, campusZoom, { animate: false });
+      if (userEngine.map) userEngine.map.setView(campusCenter, campusZoom, { animate: false });
+
+      // Align header heights so maps start and end at the exact same vertical position
+      alignSplitHeaders();
+
+      // Dynamic alignment observer
+      if (window.ResizeObserver) {
+        const ro = new ResizeObserver(() => alignSplitHeaders());
+        const leftH = document.querySelector('.split-admin-header');
+        const rightH = document.querySelector('.split-user-header');
+        if (leftH) ro.observe(leftH);
+        if (rightH) ro.observe(rightH);
+      }
+      window.addEventListener('resize', alignSplitHeaders);
+
+      // Two-way synchronization of map viewports (pan & zoom)
+      let isSyncingView = false;
+      if (adminEngine.map && userEngine.map) {
+        adminEngine.map.on('move', () => {
+          if (isSyncingView) return;
+          isSyncingView = true;
+          userEngine.map.setView(adminEngine.map.getCenter(), adminEngine.map.getZoom(), { animate: false });
+          isSyncingView = false;
+        });
+
+        userEngine.map.on('move', () => {
+          if (isSyncingView) return;
+          isSyncingView = true;
+          adminEngine.map.setView(userEngine.map.getCenter(), userEngine.map.getZoom(), { animate: false });
+          isSyncingView = false;
+        });
+      }
+
       // Sync student lists between both engines
       adminEngine.students = JSON.parse(JSON.stringify(userEngine.students));
 
-      adminEngine.refreshActiveAlerts();
-      userEngine.refreshActiveAlerts();
+      await adminEngine.refreshActiveAlerts();
+      await userEngine.refreshActiveAlerts();
+      alignSplitHeaders();
     });
 
     function onSplitRadiusChange(val) {
@@ -231,8 +336,9 @@
           recommendedSafeZoneId: 'SZ1',
           instructions: 'Evacuate hazard zone immediately via designated safe pathways.'
         });
-        adminEngine.refreshActiveAlerts();
-        userEngine.refreshActiveAlerts();
+        await adminEngine.refreshActiveAlerts();
+        await userEngine.refreshActiveAlerts();
+        alignSplitHeaders();
       } catch (e) {
         alert('Failed: ' + e.message);
       }
@@ -241,8 +347,11 @@
     async function clearAlerts() {
       try {
         await adminEngine.clearAllAdminAlerts();
-        adminEngine.refreshActiveAlerts();
-        userEngine.refreshActiveAlerts();
+        await adminEngine.refreshActiveAlerts();
+        await userEngine.refreshActiveAlerts();
+        if (adminEngine.map) adminEngine.map.setView(campusCenter, campusZoom);
+        if (userEngine.map) userEngine.map.setView(campusCenter, campusZoom);
+        alignSplitHeaders();
       } catch (e) {
         alert('Failed to clear: ' + e.message);
       }
@@ -258,6 +367,9 @@
         adminEngine.renderAllStudentsOnMap();
         userEngine.renderAllStudentsOnMap();
         userEngine.computeSafeRoute();
+        if (adminEngine.map) adminEngine.map.setView(campusCenter, campusZoom);
+        if (userEngine.map) userEngine.map.setView(campusCenter, campusZoom);
+        alignSplitHeaders();
       } catch (e) {
         alert('Failed: ' + e.message);
       }
