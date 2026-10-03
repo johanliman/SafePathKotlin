@@ -320,6 +320,7 @@ const server = http.createServer(async (req, res) => {
   // 5a. POST /api/auth/login
   if (method === 'POST' && pathname === '/api/auth/login') {
     try {
+      const data = await parseBody(req);
       const rawEmail = (data.email || '').trim().toLowerCase();
       const password = (data.password || '').trim();
 
