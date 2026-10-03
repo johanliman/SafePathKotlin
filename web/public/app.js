@@ -1450,7 +1450,22 @@ class SafePathEngine {
 
           return `
             <tr>
-              <td><strong>${u.name}</strong><br/><span style="color:#9ca3af; font-size:11px;">${u.email}</span></td>
+              <td class="student-swipe-cell">
+                <div class="swipe-wrapper" data-email="${u.email}" title="Swipe left or right to remove student">
+                  <div class="swipe-content">
+                    <div class="student-swipe-name">
+                      <span>${u.name}</span>
+                      <span class="swipe-hint" title="Click or swipe to remove">↔</span>
+                    </div>
+                    <span class="student-swipe-email">${u.email}</span>
+                  </div>
+                  <div class="swipe-action-panel swipe-action-right">
+                    <button type="button" class="btn-swipe-delete" onclick="event.stopPropagation(); window.deleteFleetUser('${u.email}')" title="Remove ${u.name}">
+                      ✕ Remove
+                    </button>
+                  </div>
+                </div>
+              </td>
               <td><code>${parseFloat(u.latitude).toFixed(4)}, ${parseFloat(u.longitude).toFixed(4)}</code></td>
               <td>
                 <span class="badge ${u.status === 'IN HAZARD' ? 'badge-danger' : (u.status === 'PROXIMITY WARNING' ? 'badge-warning' : 'badge-success')}">
@@ -1461,16 +1476,109 @@ class SafePathEngine {
               <td>${timeDisplay}</td>
               <td>${u.batteryLevel}%</td>
               <td>${u.networkState}</td>
-              <td style="text-align: center;">
-                <button type="button" class="btn btn-secondary" title="Remove user ${u.name}" onclick="window.deleteFleetUser('${u.email}')" style="padding: 4px 8px; font-size: 0.95rem; line-height: 1; border-radius: 4px; border: 1px solid #cccccc; background: #ffffff; cursor: pointer; transition: all 0.15s ease;" onmouseover="this.style.background='#fee2e2'; this.style.borderColor='#dc2626';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#cccccc';">
-                  🗑️
-                </button>
-              </td>
             </tr>
           `;
         }).join('');
+        this.initSwipeableRows();
       }
     } catch (e) {}
+  }
+
+  initSwipeableRows() {
+    const wrappers = document.querySelectorAll('.swipe-wrapper');
+    wrappers.forEach(wrapper => {
+      const email = wrapper.dataset.email;
+      const content = wrapper.querySelector('.swipe-content');
+      const actionPanel = wrapper.querySelector('.swipe-action-panel');
+      const hint = wrapper.querySelector('.swipe-hint');
+      if (!content || !actionPanel) return;
+
+      let startX = 0;
+      let currentDx = 0;
+      let isDragging = false;
+      let isOpen = false;
+      let openDirection = 'none';
+
+      const resetPos = () => {
+        content.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        content.style.transform = 'translateX(0px)';
+        isOpen = false;
+        openDirection = 'none';
+      };
+
+      const openLeft = () => {
+        content.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        content.style.transform = 'translateX(-90px)';
+        actionPanel.className = 'swipe-action-panel swipe-action-right';
+        isOpen = true;
+        openDirection = 'left';
+      };
+
+      const openRight = () => {
+        content.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        content.style.transform = 'translateX(90px)';
+        actionPanel.className = 'swipe-action-panel swipe-action-left';
+        isOpen = true;
+        openDirection = 'right';
+      };
+
+      // Pointer events for unified touch and mouse swipe support
+      wrapper.onpointerdown = (e) => {
+        if (e.target.closest('.btn-swipe-delete')) return;
+        isDragging = true;
+        startX = e.clientX;
+        currentDx = 0;
+        content.style.transition = 'none';
+        try { wrapper.setPointerCapture(e.pointerId); } catch(err) {}
+      };
+
+      wrapper.onpointermove = (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        currentDx = dx;
+
+        const base = isOpen ? (openDirection === 'left' ? -90 : 90) : 0;
+        const target = Math.max(-105, Math.min(105, base + dx));
+        content.style.transform = `translateX(${target}px)`;
+
+        if (target < 0) {
+          actionPanel.className = 'swipe-action-panel swipe-action-right';
+        } else if (target > 0) {
+          actionPanel.className = 'swipe-action-panel swipe-action-left';
+        }
+      };
+
+      const onPointerEnd = () => {
+        if (!isDragging) return;
+        isDragging = false;
+
+        const base = isOpen ? (openDirection === 'left' ? -90 : 90) : 0;
+        const netDx = base + currentDx;
+
+        if (netDx < -35) {
+          openLeft();
+        } else if (netDx > 35) {
+          openRight();
+        } else {
+          resetPos();
+        }
+      };
+
+      wrapper.onpointerup = onPointerEnd;
+      wrapper.onpointercancel = onPointerEnd;
+
+      // Click on hint icon toggles open/close
+      if (hint) {
+        hint.onclick = (e) => {
+          e.stopPropagation();
+          if (isOpen) {
+            resetPos();
+          } else {
+            openLeft();
+          }
+        };
+      }
+    });
   }
 
   async deleteUser(email) {
