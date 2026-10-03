@@ -699,7 +699,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun refreshAdminMapDisplay() {
         if (!isAdminMapLoaded) return
-        adminMapWebView.evaluateJavascript("setEpicenter($adminLat, $adminLng, $adminRadius);", null)
+        if (activeAlerts.isEmpty()) {
+            adminMapWebView.evaluateJavascript("setEpicenter($adminLat, $adminLng, $adminRadius);", null)
+        } else {
+            adminMapWebView.evaluateJavascript("clearEpicenterPin();", null)
+        }
 
         val fleet = students.map {
             mapOf("email" to it.email, "name" to it.name, "lat" to it.lat, "lng" to it.lng, "inHazard" to it.inHazard)
@@ -791,6 +795,7 @@ class MainActivity : AppCompatActivity() {
                         "2. Walk ~${(totalD * 0.4).toInt()}m along CSUF Pedestrian Walkway\n" +
                         "3. Turn slight right toward designated safe perimeter (~${(totalD * 0.6).toInt()}m)\n" +
                         "4. Arrive at Safe Haven: $haven (Assembly & Triage)"
+                btnMoveToSafeZone.text = if (moveRunnable != null) "⏹️ Stop Moving" else "🏃 Move to Safe Zone"
             }
         } else {
             tvSafetyBadge.text = "SAFE"
@@ -799,6 +804,7 @@ class MainActivity : AppCompatActivity() {
             layoutEmergencyBanner.visibility = View.GONE
             tvSafeRouteInfo.text = "🟢 Campus Status: All Clear (Safe Zone)"
             tvSafeRouteInfo.setTextColor(Color.parseColor("#16A34A"))
+            btnMoveToSafeZone.text = "🟢 Safe (Outside Hazard)"
             if (::mapWebView.isInitialized && isMapLoaded) {
                 mapWebView.evaluateJavascript("clearSafeRoute();", null)
             }
@@ -850,6 +856,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         val st = students[activeStudentIndex]
+        if (!st.inHazard) {
+            Toast.makeText(this, "You are outside the affected hazard area. No evacuation required.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val route = pathfinder.generateSafeRoute(st.lat, st.lng, activeAlerts, switchAccessibility.isChecked)
         if (route == null) {
             Toast.makeText(this, "You are already in a safe zone!", Toast.LENGTH_SHORT).show()
@@ -1123,7 +1134,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun initCampusData() {
         safeZones.add(SafeZone("SZ1", "North Quad Assembly Field", "assembly", 33.8842, -117.8855, 1500, listOf("Medical", "Water"), true, "Open quad"))
-        safeZones.add(SafeZone("SZ2", "East Perimeter Gate & Triage", "exit", 33.8825, -117.8805, 2000, listOf("Ambulance Bay"), true, "Road exit"))
+        safeZones.add(SafeZone("SZ2", "East Campus Safe Haven (West of Freeway)", "exit", 33.8830, -117.8840, 2000, listOf("Ambulance Bay", "Evacuation Shuttles"), true, "Safe haven west of CA-57"))
         safeZones.add(SafeZone("SZ3", "West Athletics Pavilion", "shelter", 33.8850, -117.8895, 1200, listOf("HEPA Filters"), true, "Shelter"))
         safeZones.add(SafeZone("SZ4", "South Gate Egress", "exit", 33.8785, -117.8850, 1000, listOf("Escort"), true, "South exit"))
 
@@ -1134,7 +1145,7 @@ class MainActivity : AppCompatActivity() {
         walkwayNodes.add(WalkwayNode("N5", 33.8835, -117.8853, "Central Spine North"))
         walkwayNodes.add(WalkwayNode("N6", 33.8842, -117.8855, "North Quad Lawn (SZ1)"))
         walkwayNodes.add(WalkwayNode("N10", 33.8850, -117.8895, "West Pavilion Path"))
-        walkwayNodes.add(WalkwayNode("N13", 33.8825, -117.8805, "East Gate Path"))
+        walkwayNodes.add(WalkwayNode("N13", 33.8830, -117.8840, "East Campus Path (West of Freeway)"))
         walkwayNodes.add(WalkwayNode("N16", 33.8785, -117.8850, "South Gate Path"))
 
         walkwayEdges.add(WalkwayEdge("N1", "N3", accessible = true, hasStairs = false))

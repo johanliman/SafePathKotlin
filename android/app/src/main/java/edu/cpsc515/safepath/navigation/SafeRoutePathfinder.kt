@@ -59,6 +59,11 @@ class SafeRoutePathfinder(
                 }
             }
 
+            // FREEWAY SAFETY BARRIER: Never route onto or across CA-57 Orange Freeway (lng > -117.8825)
+            if (u.longitude > -117.8825 || v.longitude > -117.8825) {
+                hazardPenalty += 1_000_000.0
+            }
+
             adj[u.id]?.add(PathEdge(v.id, baseDist + hazardPenalty, baseDist))
             adj[v.id]?.add(PathEdge(u.id, baseDist + hazardPenalty, baseDist))
         }
@@ -95,12 +100,12 @@ class SafeRoutePathfinder(
             }
         }
 
-        // Determine closest uncompromised safe zone
+        // Determine closest uncompromised safe zone (STRICTLY WEST OF CA-57 FREEWAY)
         val validSafeZones = safeZones.filter { sz ->
-            activeAlerts.none { alert ->
+            sz.longitude <= -117.8825 && activeAlerts.none { alert ->
                 alert.active && calculateDistance(sz.latitude, sz.longitude, alert.latitude, alert.longitude) < (alert.radiusMeters + 15.0)
             }
-        }.ifEmpty { safeZones }
+        }.ifEmpty { safeZones.filter { it.longitude <= -117.8825 } }
 
         var bestZone: SafeZone? = null
         var bestZoneNode: WalkwayNode? = null

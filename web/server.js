@@ -52,10 +52,6 @@ seedUser("yu-cheng.chang@csu.fullerton.edu", "yuchengchang", "Yu", "Student", 33
 seedUser("jchen102951@csu.fullerton.edu", "jiechen", "Jie", "Student", 33.8829, -117.8828);
 seedUser("siling313@csu.fullerton.edu", "siling", "Siling", "Student", 33.8835, -117.8870);
 
-// Backward compatibility aliases
-seedUser("johan.liman@csu.fullerton.edu", "johanliman", "Johan", "Student", 33.8802, -117.8858);
-seedUser("daniel.wu@csu.fullerton.edu", "danielwu", "Daniel", "Student", 33.8813, -117.8854);
-
 // SSE Subscribers (Real-time alert dispatch to web browsers & mobile clients)
 const sseClients = new Set();
 
@@ -227,9 +223,12 @@ const server = http.createServer(async (req, res) => {
       activeAlerts.unshift(newAlert);
       alertHistory.unshift(newAlert);
 
-      // Evaluate proximity for all registered users
+      // Evaluate proximity for all registered student users (Admin is the dispatcher, not a student recipient)
       const affectedUsers = [];
+      const studentRecipients = [];
       for (const [email, user] of registeredUsers.entries()) {
+        if (user.role === 'Admin' || user.email === 'admin@safepath.com') continue;
+        studentRecipients.push(user);
         const dist = getDistanceMeters(user.latitude, user.longitude, newAlert.latitude, newAlert.longitude);
         if (dist <= newAlert.radiusMeters) {
           user.status = 'IN HAZARD';
@@ -251,7 +250,7 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({
         success: true,
         alert: newAlert,
-        recipientsNotified: Math.max(registeredUsers.size, sseClients.size),
+        recipientsNotified: studentRecipients.length,
         affectedCount: affectedUsers.length,
         affectedUsers
       }));
@@ -321,9 +320,17 @@ const server = http.createServer(async (req, res) => {
   // 5a. POST /api/auth/login
   if (method === 'POST' && pathname === '/api/auth/login') {
     try {
-      const data = await parseBody(req);
-      const email = (data.email || '').trim().toLowerCase();
+      const rawEmail = (data.email || '').trim().toLowerCase();
       const password = (data.password || '').trim();
+
+      const emailAliases = {
+        'johan.liman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
+        'daniel.wu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
+        'jie.chen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
+        'yucheng.chang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
+        'siling.liu@csu.fullerton.edu': 'siling313@csu.fullerton.edu'
+      };
+      const email = emailAliases[rawEmail] || rawEmail;
 
       if (!email || !password) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -664,12 +671,12 @@ const server = http.createServer(async (req, res) => {
 
   // 7. GET Users (For Admin Fleet Display) - returns registered students, hides Admin and strips passwords
   if (method === 'GET' && pathname === '/api/users') {
-    const seenNames = new Set();
+    const seenEmails = new Set();
     const list = [];
     for (const user of registeredUsers.values()) {
       if (user.role === 'Admin' || user.email === 'admin@safepath.com') continue;
-      if (seenNames.has(user.name)) continue;
-      seenNames.add(user.name);
+      if (seenEmails.has(user.email)) continue;
+      seenEmails.add(user.email);
       const safe = { ...user };
       delete safe.password;
       list.push(safe);
@@ -684,10 +691,13 @@ const server = http.createServer(async (req, res) => {
 
   // 8. GET Research Metrics & Performance Telemetry
   if (method === 'GET' && pathname === '/api/metrics') {
+    const studentCount = Array.from(registeredUsers.values()).filter(
+      u => u.role !== 'Admin' && u.email !== 'admin@safepath.com'
+    ).length;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       activeConnections: sseClients.size,
-      totalRegisteredUsers: registeredUsers.size,
+      totalRegisteredUsers: studentCount,
       activeAlertsCount: activeAlerts.length,
       serverUptimeSec: Math.round(process.uptime()),
       memoryUsageBytes: process.memoryUsage().heapUsed,

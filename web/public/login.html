@@ -7,13 +7,13 @@
   <link rel="stylesheet" href="/style.css">
   <style>
     body {
-      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      background: #fafafa;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
     }
     .auth-wrapper {
-      max-width: 520px;
+      max-width: 480px;
       margin: 40px auto;
       padding: 0 16px;
       width: 100%;
@@ -21,9 +21,9 @@
     }
     .auth-card {
       background: #ffffff;
-      border-radius: 16px;
-      border: 1px solid #cbd5e1;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+      border-radius: 8px;
+      border: 1px solid #eaeaea;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
       padding: 32px 28px;
     }
     .auth-header {
@@ -31,82 +31,80 @@
       margin-bottom: 24px;
     }
     .auth-logo {
-      font-size: 2.8rem;
+      font-size: 2.4rem;
       margin-bottom: 8px;
     }
     .auth-title {
-      font-size: 1.6rem;
+      font-size: 1.5rem;
       font-weight: 800;
-      color: #0f172a;
+      color: #121212;
       letter-spacing: -0.5px;
     }
     .auth-subtitle {
-      font-size: 0.9rem;
-      color: #64748b;
+      font-size: 0.88rem;
+      color: #666666;
       margin-top: 4px;
     }
     .auth-tabs {
       display: flex;
-      background: #f1f5f9;
+      background: #f1f1f1;
       padding: 4px;
-      border-radius: 10px;
+      border-radius: 6px;
       margin-bottom: 24px;
       gap: 4px;
     }
     .auth-tab-btn {
       flex: 1;
-      padding: 10px;
+      padding: 9px;
       border: none;
       background: transparent;
-      font-weight: 700;
-      font-size: 0.92rem;
-      color: #64748b;
-      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #666666;
+      border-radius: 4px;
       cursor: pointer;
       transition: all 0.2s ease;
     }
     .auth-tab-btn.active {
-      background: #ffffff;
-      color: #1e40af;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      background: #121212;
+      color: #ffffff;
     }
     .form-group {
       margin-bottom: 16px;
     }
     .form-label {
       display: block;
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: #334155;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #444444;
       margin-bottom: 6px;
     }
     .form-control {
       width: 100%;
-      padding: 11px 14px;
-      font-size: 0.95rem;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.92rem;
+      border: 1px solid #cccccc;
+      border-radius: 4px;
       background: #ffffff;
-      color: #0f172a;
+      color: #121212;
       transition: border-color 0.2s ease;
     }
     .form-control:focus {
       outline: none;
-      border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+      border-color: #121212;
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
     }
     .btn-submit {
       width: 100%;
-      padding: 13px;
-      font-size: 1rem;
-      font-weight: 800;
-      border-radius: 8px;
-      border: none;
-      background: #2563eb;
+      padding: 12px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border-radius: 6px;
+      border: 1px solid #121212;
+      background: #121212;
       color: #ffffff;
       cursor: pointer;
-      transition: background-color 0.2s ease;
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+      transition: all 0.2s ease;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -114,17 +112,19 @@
       margin-top: 20px;
     }
     .btn-submit:hover {
-      background: #1d4ed8;
+      background: #000000;
+      border-color: #000000;
+      transform: translateY(-1px);
     }
     .quick-logins {
-      margin-top: 28px;
-      padding-top: 20px;
-      border-top: 1px solid #e2e8f0;
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid #eaeaea;
     }
     .quick-title {
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 700;
-      color: #64748b;
+      color: #888888;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 12px;
@@ -136,9 +136,9 @@
       gap: 8px;
     }
     .quick-chip {
-      background: #f8fafc;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
+      background: #ffffff;
+      border: 1px solid #eaeaea;
+      border-radius: 6px;
       padding: 8px 10px;
       font-size: 0.82rem;
       text-align: left;
@@ -148,16 +148,16 @@
       flex-direction: column;
     }
     .quick-chip:hover {
-      background: #eff6ff;
-      border-color: #93c5fd;
+      background: #fafafa;
+      border-color: #121212;
       transform: translateY(-1px);
     }
     .quick-chip strong {
-      color: #1e3a8a;
-      font-size: 0.86rem;
+      color: #121212;
+      font-size: 0.85rem;
     }
     .quick-chip span {
-      color: #64748b;
+      color: #666666;
       font-size: 0.72rem;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -165,38 +165,38 @@
     }
     .alert-box {
       padding: 12px;
-      border-radius: 8px;
-      font-size: 0.88rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
       font-weight: 600;
       margin-bottom: 16px;
       display: none;
     }
     .alert-error {
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      color: #dc2626;
+      background: #fafafa;
+      border: 1px solid #121212;
+      color: #121212;
     }
     .alert-success {
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
-      color: #16a34a;
+      background: #fafafa;
+      border: 1px solid #121212;
+      color: #121212;
     }
     .location-card {
-      background: #f8fafc;
-      border: 1.5px dashed #93c5fd;
-      border-radius: 10px;
+      background: #fafafa;
+      border: 1px dashed #cccccc;
+      border-radius: 6px;
       padding: 14px;
       margin-top: 12px;
       margin-bottom: 14px;
     }
     .loc-btn {
-      background: #2563eb;
-      color: #fff;
-      border: none;
-      padding: 7px 12px;
-      border-radius: 6px;
+      background: #121212;
+      color: #ffffff;
+      border: 1px solid #121212;
+      padding: 6px 12px;
+      border-radius: 4px;
       font-size: 0.8rem;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -210,11 +210,11 @@
   <!-- Top Simple Navigation -->
   <nav class="navbar">
     <a href="/" class="brand">
-      🛡️ SafePath <span class="brand-badge" style="background:#2563eb;">Authentication</span>
+      🛡️ SafePath <span class="brand-badge">Authentication</span>
     </a>
     <div class="nav-links">
-      <a href="/login.html" class="nav-btn active">🔑 Sign In / Register</a>
-      <a href="/demo.html" class="nav-btn">⚡ Split Demo</a>
+      <a href="/login.html" class="nav-btn active">Sign In / Register</a>
+      <a href="/demo.html" class="nav-btn">Split Demo</a>
     </div>
   </nav>
 

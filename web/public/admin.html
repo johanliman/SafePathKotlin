@@ -13,16 +13,16 @@
   <!-- Top Navigation -->
   <nav class="navbar">
     <a href="/" class="brand">
-      🛡️ SafePath <span class="brand-badge" style="background:#dc2626;">🚨 Admin EOC Command</span>
+      🛡️ SafePath <span class="brand-badge">Admin EOC</span>
     </a>
     <div class="nav-links">
-      <div id="admin-badge" style="background:#fee2e2; border:1px solid #fecaca; padding:5px 12px; border-radius:8px; font-size:0.85rem; color:#991b1b; font-weight:700; display:flex; align-items:center; gap:6px;">
-        <span>🛡️</span> <span>Campus Admin (admin@safepath.com)</span>
+      <div id="admin-badge" style="background:#fafafa; border:1px solid #cccccc; padding:5px 12px; border-radius:4px; font-size:0.85rem; color:#121212; font-weight:600; display:flex; align-items:center; gap:6px;">
+        <span>👤</span> <span>Campus Admin (admin@safepath.com)</span>
       </div>
-      <a href="/admin.html" class="nav-btn active" style="background:#dc2626; border-color:#dc2626; color:#ffffff;">🛡️ Admin Panel</a>
-      <a href="/user.html" class="nav-btn" style="color: #2563eb; border-color: #93c5fd;">📱 Student Panel →</a>
-      <button onclick="handleAdminLogout()" class="nav-btn" style="color:#dc2626; border-color:#fca5a5; font-weight:700; cursor:pointer;">
-        🚪 Sign Out
+      <a href="/admin.html" class="nav-btn active">Admin Panel</a>
+      <a href="/user.html" class="nav-btn">Student Panel →</a>
+      <button onclick="handleAdminLogout()" class="nav-btn" style="cursor:pointer;">
+        Sign Out
       </button>
     </div>
   </nav>
@@ -30,38 +30,38 @@
   <div class="container" style="max-width: 1500px;">
     
     <!-- Distinct Admin EOC Role Banner -->
-    <div style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 12px; padding: 14px 20px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <div style="background: #fafafa; border: 1px solid #eaeaea; border-radius: 8px; padding: 14px 20px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
       <div>
-        <div style="font-size: 1.15rem; font-weight: 800; color: #991b1b; display: flex; align-items: center; gap: 10px;">
-          <span>🚨 ADMIN OPERATIONS & EMERGENCY DISPATCH CONSOLE</span>
-          <span style="background: #dc2626; color: #fff; font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; font-weight: 700; letter-spacing: 0.5px;">ADMIN ROLE</span>
+        <div style="font-size: 1.15rem; font-weight: 800; color: #121212; display: flex; align-items: center; gap: 10px;">
+          <span>ADMIN OPERATIONS & EMERGENCY DISPATCH CONSOLE</span>
+          <span class="badge badge-danger">ADMIN ROLE</span>
         </div>
-        <div style="font-size: 0.85rem; color: #7f1d1d; margin-top: 3px;">
-          Campus Dispatcher View: Click anywhere on the map to pin the epicenter, adjust hazard radius, and broadcast live alerts to student devices.
+        <div style="font-size: 0.85rem; color: #666666; margin-top: 3px;">
+          Campus Dispatcher View: Click on the map to set epicenter. Double-click pin or map to remove pin. Broadcast live alerts to student devices.
         </div>
       </div>
-      <a href="/user.html" class="btn" style="background: #2563eb; color: #fff; font-weight: 700; font-size: 0.85rem; padding: 9px 18px; border-radius: 8px; text-decoration: none; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-        📱 Switch to Student Panel →
+      <a href="/user.html" class="btn btn-secondary">
+        Switch to Student Panel →
       </a>
     </div>
     
     <!-- Top Telemetry Row -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px;">
       <div class="card" style="padding: 14px 18px;">
-        <div class="metric-label">📡 Connected Mobile Devices</div>
-        <div class="metric-val" id="admin-connected-count" style="color: #60a5fa;">5 Active</div>
+        <div class="metric-label">Connected Mobile Devices</div>
+        <div class="metric-val" id="admin-connected-count">5 Active</div>
       </div>
       <div class="card" style="padding: 14px 18px;">
-        <div class="metric-label">🚨 Active Emergency Geofences</div>
-        <div class="metric-val" id="admin-active-count" style="color: #10b981;">0 Active</div>
+        <div class="metric-label">Active Emergency Geofences</div>
+        <div class="metric-val" id="admin-active-count">0 Active</div>
       </div>
       <div class="card" style="padding: 14px 18px;">
-        <div class="metric-label">⚡ Broadcast Transmission Latency</div>
-        <div class="metric-val" id="metric-latency" style="color: #34d399;">14 ms</div>
+        <div class="metric-label">Transmission Latency</div>
+        <div class="metric-val" id="metric-latency">14 ms</div>
       </div>
       <div class="card" style="padding: 14px 18px;">
-        <div class="metric-label">🛡️ Design Safe Havens</div>
-        <div class="metric-val" style="color: #10b981;">4 Zones Active</div>
+        <div class="metric-label">Designated Safe Havens</div>
+        <div class="metric-val">4 Zones Active</div>
       </div>
     </div>
 
@@ -71,25 +71,25 @@
       <!-- Left Column: Dispatcher Form -->
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">🚨 Broadcast Emergency Alert</h3>
-          <span class="badge badge-danger">Live Dispatch</span>
+          <h3 class="card-title">Broadcast Emergency Alert</h3>
+          <span class="badge badge-danger">Dispatch</span>
         </div>
 
         <!-- Quick Scenario Buttons -->
         <div class="form-group">
-          <label class="form-label">⚡ Quick Emergency Scenarios</label>
+          <label class="form-label">Quick Emergency Scenarios</label>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
             <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:6px;" onclick="loadScenario('hazmat')">
-              ☣️ Chem Spill
+              Chem Spill
             </button>
             <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:6px;" onclick="loadScenario('wildfire')">
-              🔥 Wildfire
+              Wildfire
             </button>
             <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:6px;" onclick="loadScenario('earthquake')">
-              🏚️ Earthquake
+              Earthquake
             </button>
             <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:6px;" onclick="loadScenario('flood')">
-              🌧️ Flash Flood
+              Flash Flood
             </button>
           </div>
         </div>
@@ -100,18 +100,18 @@
           <div class="form-group">
             <label class="form-label">Emergency Category (12 Types)</label>
             <select id="admin-alert-type" class="form-control" onchange="onAlertTypeChange()">
-              <option value="Hazardous Materials">☣️ Hazardous Materials (HazMat)</option>
-              <option value="Wildfire">🔥 Wildfire Evacuation</option>
-              <option value="Earthquake">🏚️ Earthquake</option>
-              <option value="Tsunami">🌊 Tsunami Warning</option>
-              <option value="Extreme Heat">☀️ Extreme Heat Advisory</option>
-              <option value="Flood">🌧️ Flash Flood Warning</option>
-              <option value="Thunderstorm">⚡ Severe Thunderstorm / Lightning</option>
-              <option value="High Wind">💨 High Wind Hazard</option>
-              <option value="Volcano">🌋 Volcanic Ash / Pyroclastic Alert</option>
-              <option value="Air Quality">🌫️ Severe Air Quality Emergency</option>
-              <option value="Radiation">☢️ Radiation Threat</option>
-              <option value="Public Health Emergency">🏥 Public Health Emergency</option>
+              <option value="Hazardous Materials">Hazardous Materials (HazMat)</option>
+              <option value="Wildfire">Wildfire Evacuation</option>
+              <option value="Earthquake">Earthquake</option>
+              <option value="Tsunami">Tsunami Warning</option>
+              <option value="Extreme Heat">Extreme Heat Advisory</option>
+              <option value="Flood">Flash Flood Warning</option>
+              <option value="Thunderstorm">Severe Thunderstorm / Lightning</option>
+              <option value="High Wind">High Wind Hazard</option>
+              <option value="Volcano">Volcanic Ash / Pyroclastic Alert</option>
+              <option value="Air Quality">Severe Air Quality Emergency</option>
+              <option value="Radiation">Radiation Threat</option>
+              <option value="Public Health Emergency">Public Health Emergency</option>
             </select>
           </div>
 
@@ -119,9 +119,9 @@
           <div class="form-group">
             <label class="form-label">Alert Severity Level</label>
             <select id="admin-severity" class="form-control">
-              <option value="CRITICAL">🔴 CRITICAL (Immediate Evacuation)</option>
-              <option value="WARNING">🟠 WARNING (Take Protective Action)</option>
-              <option value="ADVISORY">🟡 ADVISORY (Informational / Caution)</option>
+              <option value="CRITICAL">CRITICAL (Immediate Evacuation)</option>
+              <option value="WARNING">WARNING (Take Protective Action)</option>
+              <option value="ADVISORY">ADVISORY (Informational / Caution)</option>
             </select>
           </div>
 
@@ -136,43 +136,26 @@
               <input type="number" step="0.0001" id="admin-lng" class="form-control" value="-117.8860" required>
             </div>
           </div>
-          <div style="font-size:0.75rem; color:#9ca3af; margin-top:-8px; margin-bottom:12px;">
-            💡 <em>Tip: Click anywhere on the map to set coordinates!</em>
+          <div style="font-size:0.75rem; color:#888888; margin-top:-8px; margin-bottom:12px;">
+            💡 <em>Click map to set epicenter. Double-click pin or map to remove epicenter pin!</em>
           </div>
 
           <!-- Affected Radius Geofence -->
           <div class="form-group">
             <div style="display:flex; justify-content:space-between;">
               <label class="form-label">Affected Geofence Radius</label>
-              <span id="radius-val-badge" class="badge badge-info">250 meters</span>
+              <span id="radius-val-badge" class="badge">250 meters</span>
             </div>
-            <input type="range" id="admin-radius" min="50" max="800" step="25" value="250" style="width:100%; accent-color:#ef4444;" oninput="onRadiusChange(this.value)">
-          </div>
-
-          <!-- Recommended Safe Zone -->
-          <div class="form-group">
-            <label class="form-label">Recommended Evacuation Safe Zone</label>
-            <select id="admin-safezone" class="form-control">
-              <option value="SZ1">🛡️ SZ1: North Quad Assembly Field (Open Air)</option>
-              <option value="SZ2">🛡️ SZ2: East Perimeter Gate & Triage</option>
-              <option value="SZ3">🛡️ SZ3: West Athletics Pavilion (High Ground)</option>
-              <option value="SZ4">🛡️ SZ4: South Gate Plaza Egress</option>
-            </select>
-          </div>
-
-          <!-- Instructions Directives -->
-          <div class="form-group">
-            <label class="form-label">Emergency Protective Directives</label>
-            <textarea id="admin-instructions" class="form-control" placeholder="Evacuation directions and safety instructions..."></textarea>
+            <input type="range" id="admin-radius" min="50" max="800" step="25" value="250" style="width:100%; accent-color:#121212;" oninput="onRadiusChange(this.value)">
           </div>
 
           <!-- Broadcast & Remove Buttons -->
-          <div style="display: flex; gap: 10px; margin-top: 10px;">
-            <button type="submit" class="btn btn-danger" style="flex: 2; padding:12px; font-size:1.0rem; font-weight:700;">
-              🚨 Broadcast Emergency Alert
+          <div style="display: flex; gap: 10px; margin-top: 14px;">
+            <button type="submit" class="btn btn-primary" style="flex: 2; padding:11px; font-size:0.95rem; font-weight:700;">
+              Broadcast Emergency Alert
             </button>
-            <button type="button" class="btn btn-warning" style="flex: 1; padding:12px; font-size:0.9rem; font-weight:700;" onclick="removeAllAlerts()">
-              🗑️ Remove Alert
+            <button type="button" class="btn btn-secondary" style="flex: 1; padding:11px; font-size:0.9rem;" onclick="removeAllAlerts()">
+              Remove Alert
             </button>
           </div>
         </form>
@@ -181,10 +164,10 @@
         <div style="margin-top: 24px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
             <h4 style="font-size: 0.95rem; font-weight:700; margin:0;">
-              📋 Active Dispatched Alerts (<span id="active-badge-count">0</span>)
+              Active Dispatched Alerts (<span id="active-badge-count">0</span>)
             </h4>
             <button type="button" class="btn btn-secondary" style="width:auto; padding:4px 10px; font-size:0.75rem;" onclick="removeAllAlerts()">
-              🗑️ Clear All
+              Clear All
             </button>
           </div>
           <div id="admin-active-alerts-list">
@@ -200,20 +183,22 @@
         <!-- Live Campus Geofence Map -->
         <div class="card" style="padding: 16px;">
           <div class="card-header">
-            <h3 class="card-title">🗺️ Real-Time Campus Map & Geofence Boundaries</h3>
-            <div style="display:flex; gap:10px; align-items:center; font-size:0.8rem; color:#9ca3af;">
-              <span>🔴 Hazard Zone</span>
-              <span>🛡️ Safe Zone</span>
-              <span>👤 Student Position</span>
+            <h3 class="card-title">Campus Map & Hazard Boundaries</h3>
+            <div style="display:flex; gap:10px; align-items:center; font-size:0.8rem; color:#666666;">
+              <span>Hazard Zone</span>
+              <span>•</span>
+              <span>Safe Zone</span>
+              <span>•</span>
+              <span>Student Position</span>
             </div>
           </div>
           <!-- Map Pinning Instruction Callout -->
-          <div style="display:flex; justify-content:space-between; align-items:center; background:#fff1f2; border:1px solid #fecdd3; padding:8px 14px; border-radius:8px; margin-bottom:10px; font-size:0.84rem;">
-            <div style="display:flex; align-items:center; gap:8px; color:#9f1239; font-weight:700;">
-              <span>📍 Map Pinning Mode:</span>
-              <span style="font-weight:500; color:#881337;">Click anywhere on the map or drag the 🎯 epicenter pin to position the emergency.</span>
+          <div style="display:flex; justify-content:space-between; align-items:center; background:#fafafa; border:1px solid #eaeaea; padding:8px 14px; border-radius:6px; margin-bottom:10px; font-size:0.84rem;">
+            <div style="display:flex; align-items:center; gap:8px; color:#121212;">
+              <span style="font-weight:700;">Map Pinning Mode:</span>
+              <span style="color:#666666;">Click map to set epicenter. Double-click epicenter pin or map to remove it.</span>
             </div>
-            <span class="badge badge-danger" style="font-size:0.72rem; padding:3px 8px;">CLICK MAP TO PIN</span>
+            <span class="badge" style="font-size:0.72rem; padding:3px 8px;">INTERACTIVE</span>
           </div>
           <div id="admin-map" class="map-container" style="height: 540px;"></div>
         </div>
@@ -222,11 +207,11 @@
         <div class="card">
           <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
             <div>
-              <h3 class="card-title" style="margin-bottom:2px;">👥 Connected Student Fleet Monitoring</h3>
-              <span class="badge badge-info">Real-time GPS Pings</span>
+              <h3 class="card-title" style="margin-bottom:2px;">Connected Student Fleet Monitoring</h3>
+              <span class="badge">Real-time GPS</span>
             </div>
             <button type="button" class="btn btn-secondary" style="font-size:0.78rem; padding:6px 14px; width:auto;" onclick="resetFleetLocations()">
-              🔄 Reset Fleet Locations
+              Reset Fleet Locations
             </button>
           </div>
           <div style="overflow-x: auto;">
@@ -276,8 +261,11 @@
         const lat = parseFloat(document.getElementById('admin-lat').value);
         const lng = parseFloat(document.getElementById('admin-lng').value);
         const radius = parseFloat(document.getElementById('admin-radius').value);
-        const safeZoneId = document.getElementById('admin-safezone').value;
-        const instructions = document.getElementById('admin-instructions').value;
+
+        const safeZoneElem = document.getElementById('admin-safezone');
+        const safeZoneId = safeZoneElem ? safeZoneElem.value : 'SZ1';
+        const instructionsElem = document.getElementById('admin-instructions');
+        const instructions = instructionsElem ? instructionsElem.value : 'Emergency hazard active. Evacuate immediately via designated safe pathways.';
 
         try {
           const res = await adminApp.broadcastAdminAlert({
@@ -289,7 +277,7 @@
             recommendedSafeZoneId: safeZoneId,
             instructions
           });
-          alert(`✅ Emergency Alert successfully broadcast! Reached ${res.recipientsNotified} devices. Affected students: ${res.affectedCount}`);
+          alert(`Emergency Alert broadcast successfully! Notified ${res.recipientsNotified} devices. Affected students: ${res.affectedCount}`);
           adminApp.refreshActiveAlerts();
           adminApp.loadAdminFleet();
         } catch (err) {
@@ -301,7 +289,7 @@
     async function resetFleetLocations() {
       try {
         await adminApp.resetFleetLocations();
-        alert('✅ All 5 students have been reset to their initial campus building locations.');
+        alert('All 5 students have been reset to their initial campus building locations.');
       } catch (e) {
         alert('Failed to reset fleet: ' + e.message);
       }
@@ -331,12 +319,10 @@
 
     function onAlertTypeChange() {
       const type = document.getElementById('admin-alert-type').value;
-      const instructionsElem = document.getElementById('admin-instructions');
       const radiusInput = document.getElementById('admin-radius');
 
       const template = adminApp?.campusData?.emergencyTypes?.find(t => t.id === type) || alertCategoryDefaults[type];
       if (template) {
-        instructionsElem.value = template.instructions || '';
         radiusInput.value = template.defaultRadius || template.radius || 200;
         onRadiusChange(radiusInput.value);
         document.getElementById('admin-severity').value = template.severity || 'CRITICAL';
@@ -349,25 +335,21 @@
         document.getElementById('admin-lat').value = '33.8800';
         document.getElementById('admin-lng').value = '-117.8860';
         document.getElementById('admin-radius').value = '180';
-        document.getElementById('admin-safezone').value = 'SZ1';
       } else if (key === 'wildfire') {
         document.getElementById('admin-alert-type').value = 'Wildfire';
         document.getElementById('admin-lat').value = '33.8875';
         document.getElementById('admin-lng').value = '-117.8845';
         document.getElementById('admin-radius').value = '200';
-        document.getElementById('admin-safezone').value = 'SZ2';
       } else if (key === 'earthquake') {
         document.getElementById('admin-alert-type').value = 'Earthquake';
         document.getElementById('admin-lat').value = '33.8813';
         document.getElementById('admin-lng').value = '-117.8854';
         document.getElementById('admin-radius').value = '200';
-        document.getElementById('admin-safezone').value = 'SZ1';
       } else if (key === 'flood') {
         document.getElementById('admin-alert-type').value = 'Flood';
         document.getElementById('admin-lat').value = '33.8845';
         document.getElementById('admin-lng').value = '-117.8890';
         document.getElementById('admin-radius').value = '180';
-        document.getElementById('admin-safezone').value = 'SZ1';
       }
       onAlertTypeChange();
       const lat = parseFloat(document.getElementById('admin-lat').value);
@@ -379,31 +361,16 @@
     }
 
     async function removeAllAlerts() {
-      if (!confirm('Are you sure you want to remove all active emergency alerts and set campus status to All Clear?')) return;
+      if (!confirm('Are you sure you want to clear active emergency alerts?')) return;
       try {
         await adminApp.clearAllAdminAlerts();
-        adminApp.refreshActiveAlerts();
-        adminApp.loadAdminFleet();
-        alert('✅ All active emergency alerts removed. Campus status returned to All Clear.');
-      } catch (err) {
-        alert('Failed to remove alerts: ' + err.message);
-      }
-    }
-
-    async function resolveSingleAlert(id) {
-      try {
-        await adminApp.resolveAdminAlert(id);
-        adminApp.refreshActiveAlerts();
-        adminApp.loadAdminFleet();
-      } catch (err) {
-        alert('Failed to remove alert: ' + err.message);
+      } catch (e) {
+        alert('Failed to clear alerts: ' + e.message);
       }
     }
 
     function handleAdminLogout() {
-      localStorage.removeItem('safepath_user');
-      localStorage.removeItem('safepath_user_email');
-      localStorage.removeItem('safepath_role');
+      sessionStorage.removeItem('safepath_auth');
       window.location.href = '/login.html';
     }
   </script>

@@ -6,16 +6,13 @@ class SafePathEngine {
     this.role = options.role || 'user'; // 'user', 'admin', or 'demo'
     this.mapId = options.mapId || 'user-map';
 
-    // Campus Students with distinct fixed positions (exact user emails + aliases)
+    // Campus Students with distinct fixed positions (the 5 official student users)
     this.students = [
       { email: "johaliman@csu.fullerton.edu", name: "Johan", lat: 33.8802, lng: -117.8858 },
       { email: "d.wu@csu.fullerton.edu", name: "Daniel", lat: 33.8813, lng: -117.8854 },
       { email: "yu-cheng.chang@csu.fullerton.edu", name: "Yu", lat: 33.8820, lng: -117.8885 },
       { email: "jchen102951@csu.fullerton.edu", name: "Jie", lat: 33.8829, lng: -117.8828 },
-      { email: "siling313@csu.fullerton.edu", name: "Siling", lat: 33.8835, lng: -117.8870 },
-      // Legacy aliases
-      { email: "johan.liman@csu.fullerton.edu", name: "Johan", lat: 33.8802, lng: -117.8858 },
-      { email: "daniel.wu@csu.fullerton.edu", name: "Daniel", lat: 33.8813, lng: -117.8854 }
+      { email: "siling313@csu.fullerton.edu", name: "Siling", lat: 33.8835, lng: -117.8870 }
     ];
 
     // Selected Active Student
@@ -86,9 +83,21 @@ class SafePathEngine {
             st.lat = parseFloat(u.latitude);
             st.lng = parseFloat(u.longitude);
             st.status = u.status;
+            st.name = u.name;
             if (u.distanceMeters !== undefined) st.distanceMeters = u.distanceMeters;
             if (u.estMinutes !== undefined) st.estMinutes = u.estMinutes;
             if (u.targetHaven !== undefined) st.targetHaven = u.targetHaven;
+          } else if (u.role !== 'Admin' && u.email !== 'admin@safepath.com') {
+            this.students.push({
+              email: u.email,
+              name: u.name,
+              lat: parseFloat(u.latitude),
+              lng: parseFloat(u.longitude),
+              status: u.status || 'NORMAL',
+              distanceMeters: u.distanceMeters,
+              estMinutes: u.estMinutes,
+              targetHaven: u.targetHaven
+            });
           }
         });
         if (this.role === 'user') {
@@ -120,13 +129,17 @@ class SafePathEngine {
     this.map = L.map(this.mapId, {
       center: [this.userLat, this.userLng],
       zoom: 16,
-      zoomControl: true
+      zoomControl: true,
+      doubleClickZoom: false
     });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19
     }).addTo(this.map);
+
+    // Add Compass Rose Sign to top-right of map for easy reading & orientation
+    this.addCompassControl();
 
     this.renderAllStudentsOnMap();
 
@@ -145,13 +158,58 @@ class SafePathEngine {
       }
     });
 
-    // Auto-place initial epicenter pin on admin map
-    if (this.role === 'admin' || (this.role === 'demo' && this.mapId === 'split-admin-map')) {
+    // Feature: Double click on map to remove epicenter pin
+    this.map.on('dblclick', (e) => {
+      if (this.role === 'admin' || (this.role === 'demo' && this.mapId === 'split-admin-map')) {
+        this.clearAdminPin();
+      }
+    });
+
+    // Auto-place initial epicenter pin on admin map ONLY if NO alert is currently active!
+    // "When already have already, hide another epicenter pin since it can be confusing."
+    if ((this.role === 'admin' || (this.role === 'demo' && this.mapId === 'split-admin-map')) && this.activeAlerts.length === 0) {
       const latInput = document.getElementById('admin-lat') || document.getElementById('split-admin-lat');
       const lngInput = document.getElementById('admin-lng') || document.getElementById('split-admin-lng');
       const initLat = latInput ? parseFloat(latInput.value) : 33.8800;
       const initLng = lngInput ? parseFloat(lngInput.value) : -117.8860;
       this.setAdminPin(initLat, initLng);
+    }
+  }
+
+  // --- COMPASS ROSE CONTROL (North, South, East, West Navigation Indicator) ---
+  addCompassControl() {
+    if (!this.map) return;
+    const CompassControl = L.Control.extend({
+      options: { position: 'topright' },
+      onAdd: function() {
+        const div = L.DomUtil.create('div', 'leaflet-compass-widget');
+        div.setAttribute('title', 'Compass: North is Up (▲ N)');
+        div.innerHTML = `
+          <div style="background: rgba(255, 255, 255, 0.96); border-radius: 50%; width: 46px; height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,0.12); border: 1.5px solid #cccccc; user-select: none; pointer-events: auto; cursor: default; margin-top: 4px; margin-right: 4px;">
+            <div style="font-size: 10px; font-weight: 900; color: #121212; line-height: 1; margin-top: 1px;">▲ N</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 34px; font-size: 8px; font-weight: 800; color: #666666; line-height: 1;">
+              <span>W</span>
+              <div style="width: 3px; height: 3px; background: #121212; border-radius: 50%;"></div>
+              <span>E</span>
+            </div>
+            <div style="font-size: 8px; font-weight: 800; color: #888888; line-height: 1; margin-bottom: 1px;">▼ S</div>
+          </div>
+        `;
+        return div;
+      }
+    });
+    this.map.addControl(new CompassControl());
+  }
+
+  // Clear draft epicenter pin when alert is already active / broadcasted or double-clicked
+  clearAdminPin() {
+    if (this.adminPinMarker && this.map) {
+      this.map.removeLayer(this.adminPinMarker);
+      this.adminPinMarker = null;
+    }
+    if (this.adminPreviewCircle && this.map) {
+      this.map.removeLayer(this.adminPreviewCircle);
+      this.adminPreviewCircle = null;
     }
   }
 
@@ -170,11 +228,11 @@ class SafePathEngine {
     if (lngInput) lngInput.value = Number(lng).toFixed(4);
 
     const pinHtml = `
-      <div style="position:relative; cursor:grab;">
-        <div style="background:#dc2626; width:34px; height:34px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 0 16px rgba(220,38,38,0.9); display:flex; align-items:center; justify-content:center; color:#fff; font-size:18px;">
+      <div style="position:relative; cursor:grab;" title="Double-click to remove epicenter pin">
+        <div style="background:#121212; width:34px; height:34px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 2px 10px rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px;">
           🎯
         </div>
-        <div style="position:absolute; top:-26px; left:-55px; background:rgba(220,38,38,0.95); color:#ffffff; font-size:11px; font-weight:800; padding:2px 8px; border-radius:12px; border:2px solid #ffffff; white-space:nowrap; box-shadow:0 4px 6px rgba(0,0,0,0.3);">
+        <div style="position:absolute; top:-26px; left:-55px; background:#121212; color:#ffffff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; border:1px solid #ffffff; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.25);">
           📍 EPICENTER PIN
         </div>
       </div>
@@ -195,6 +253,12 @@ class SafePathEngine {
         draggable: true,
         zIndexOffset: 3000
       }).addTo(this.map);
+
+      // Feature: Double click on epicenter pin directly to remove it
+      this.adminPinMarker.on('dblclick', (e) => {
+        if (e && e.originalEvent) L.DomEvent.stopPropagation(e);
+        this.clearAdminPin();
+      });
 
       this.adminPinMarker.on('drag', (e) => {
         const pos = e.target.getLatLng();
@@ -217,13 +281,13 @@ class SafePathEngine {
     } else {
       this.adminPreviewCircle = L.circle([lat, lng], {
         radius: radius,
-        color: '#dc2626',
+        color: '#121212',
         dashArray: '6, 6',
-        fillColor: '#ef4444',
-        fillOpacity: 0.22,
-        weight: 2.5
+        fillColor: '#121212',
+        fillOpacity: 0.12,
+        weight: 2
       }).addTo(this.map);
-      this.adminPreviewCircle.bindPopup(`<strong>📍 Hazard Geofence Preview</strong><br/>Radius: ${radius}m<br/><em>Click anywhere to change epicenter</em>`);
+      this.adminPreviewCircle.bindPopup(`<strong>📍 Hazard Geofence Preview</strong><br/>Radius: ${radius}m<br/><em>Click to set epicenter, double-click to remove pin</em>`);
     }
   }
 
@@ -252,15 +316,17 @@ class SafePathEngine {
 
       this.students.forEach(student => {
         const isStudentInDanger = this.isLocationInHazard(student.lat, student.lng);
-        const studentColor = isStudentInDanger ? '#ef4444' : '#10b981';
+        const markerBg = isStudentInDanger ? '#121212' : '#ffffff';
+        const markerColor = isStudentInDanger ? '#ffffff' : '#121212';
+        const borderColor = isStudentInDanger ? '#ffffff' : '#121212';
 
         const adminHtml = `
           <div style="position:relative;">
-            <div style="background:${studentColor}; width:26px; height:26px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 10px ${studentColor}; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; font-weight:bold;">
+            <div style="background:${markerBg}; color:${markerColor}; width:26px; height:26px; border-radius:50%; border:2px solid ${borderColor}; box-shadow:0 2px 6px rgba(0,0,0,0.25); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold;">
               👤
             </div>
-            <div style="position:absolute; top:-24px; left:-32px; background:rgba(15,23,42,0.95); color:#fff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; border:1px solid ${studentColor}; white-space:nowrap; box-shadow:0 2px 4px rgba(0,0,0,0.5);">
-              ${student.name.split(' ')[0]} ${isStudentInDanger ? '🚨' : '🟢'}
+            <div style="position:absolute; top:-24px; left:-32px; background:#121212; color:#fff; font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; border:1px solid #fff; white-space:nowrap; box-shadow:0 2px 4px rgba(0,0,0,0.3);">
+              ${student.name.split(' ')[0]} ${isStudentInDanger ? '⚠️' : '✓'}
             </div>
           </div>
         `;
@@ -276,7 +342,7 @@ class SafePathEngine {
         marker.bindPopup(`
           <strong>🧑 ${student.name}</strong><br/>
           GPS: <code>${student.lat.toFixed(4)}, ${student.lng.toFixed(4)}</code><br/>
-          Status: <strong>${isStudentInDanger ? '🚨 IN HAZARD' : '🟢 SAFE'}</strong><br/>
+          Status: <strong>${isStudentInDanger ? '⚠️ IN HAZARD' : '✓ SAFE'}</strong><br/>
           Distance to Haven: <strong>${student.distanceMeters !== undefined ? student.distanceMeters + 'm' : 'Calculating...'}</strong>
         `);
         this.otherStudentMarkers.set(student.email, marker);
@@ -288,17 +354,16 @@ class SafePathEngine {
 
     // CASE B: USER & DEMO PANELS (Active student shown as "YOU", other 4 as fleet students)
     if (!this.isNavigating) {
-      // 1. Render Active User (YOU) with prominent Blue Marker
+      // 1. Render Active User (YOU) with prominent Black & White Marker
       const isYouInHazard = this.isLocationInHazard(this.userLat, this.userLng);
-      const activeColor = isYouInHazard ? '#ef4444' : '#3b82f6';
 
       const userHtml = `
         <div style="position:relative;">
-          <div style="background:${activeColor}; width:28px; height:28px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 16px ${activeColor}; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; font-weight:bold;">
+          <div style="background:#121212; width:28px; height:28px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 2px 10px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; font-weight:bold;">
             📍
           </div>
-          <div style="position:absolute; top:-26px; left:-42px; background:rgba(15,23,42,0.95); color:#fff; font-size:11px; font-weight:800; padding:2px 8px; border-radius:12px; border:2px solid ${activeColor}; white-space:nowrap; box-shadow:0 4px 6px rgba(0,0,0,0.5);">
-            YOU: ${this.userName.split(' ')[0]} ${isYouInHazard ? '🚨' : '🟢'}
+          <div style="position:absolute; top:-26px; left:-42px; background:#121212; color:#fff; font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; border:1px solid #ffffff; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.3);">
+            YOU: ${this.userName.split(' ')[0]} ${isYouInHazard ? '⚠️' : '✓'}
           </div>
         </div>
       `;
@@ -333,15 +398,14 @@ class SafePathEngine {
         if (student.email === this.userEmail) return;
 
         const isStudentInDanger = this.isLocationInHazard(student.lat, student.lng);
-        const studentColor = isStudentInDanger ? '#ef4444' : '#10b981';
 
         const otherHtml = `
           <div style="position:relative; cursor:pointer;" onclick="window.safePathApp.switchActiveUser('${student.email}')">
-            <div style="background:#1e293b; width:22px; height:22px; border-radius:50%; border:2px solid ${studentColor}; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; box-shadow:0 2px 6px rgba(0,0,0,0.5);">
+            <div style="background:#ffffff; width:22px; height:22px; border-radius:50%; border:1.5px solid #121212; display:flex; align-items:center; justify-content:center; color:#121212; font-size:11px; box-shadow:0 1px 4px rgba(0,0,0,0.2);">
               👤
             </div>
-            <div style="position:absolute; top:-22px; left:-30px; background:rgba(30,41,59,0.9); color:#e2e8f0; font-size:10px; font-weight:700; padding:1px 6px; border-radius:8px; border:1px solid ${studentColor}; white-space:nowrap;">
-              ${student.name.split(' ')[0]} ${isStudentInDanger ? '🚨' : ''}
+            <div style="position:absolute; top:-22px; left:-30px; background:#ffffff; color:#121212; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px; border:1px solid #cccccc; white-space:nowrap;">
+              ${student.name.split(' ')[0]} ${isStudentInDanger ? '⚠️' : ''}
             </div>
           </div>
         `;
@@ -356,8 +420,8 @@ class SafePathEngine {
         const marker = L.marker([student.lat, student.lng], { icon: otherIcon, zIndexOffset: 500 }).addTo(this.map);
         marker.bindPopup(`
           <strong>🧑 ${student.name}</strong><br/>
-          Status: <strong>${isStudentInDanger ? '🚨 IN HAZARD' : '🟢 SAFE'}</strong><br/>
-          <button style="margin-top:6px; padding:4px 8px; font-size:11px; cursor:pointer; background:#3b82f6; color:#fff; border:none; border-radius:4px;" onclick="window.safePathApp.switchActiveUser('${student.email}')">
+          Status: <strong>${isStudentInDanger ? '⚠️ IN HAZARD' : '✓ SAFE'}</strong><br/>
+          <button style="margin-top:6px; padding:4px 8px; font-size:11px; cursor:pointer; background:#121212; color:#fff; border:none; border-radius:4px;" onclick="window.safePathApp.switchActiveUser('${student.email}')">
             Switch to ${student.name}
           </button>
         `);
@@ -390,7 +454,7 @@ class SafePathEngine {
       if (isCompromised) {
         // Safe Zone is inside the danger zone! Mark as COMPROMISED - DO NOT ENTER!
         const compHtml = `
-          <div style="background:#ef4444; color:#fff; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 0 10px rgba(239,68,68,0.8); font-size:13px; opacity:0.9;">
+          <div style="background:#121212; color:#fff; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 0 6px rgba(0,0,0,0.5); font-size:13px;">
             ⚠️
           </div>
         `;
@@ -402,14 +466,14 @@ class SafePathEngine {
         });
 
         const marker = L.marker([zone.lat, zone.lng], { icon: compIcon }).addTo(this.map);
-        marker.bindPopup(`<strong>⚠️ COMPROMISED: ${zone.name}</strong><br/><span style="color:#ef4444; font-weight:700;">INSIDE RED HAZARD ZONE - DO NOT EVACUATE HERE</span>`);
+        marker.bindPopup(`<strong>⚠️ COMPROMISED: ${zone.name}</strong><br/><span style="color:#121212; font-weight:700;">INSIDE HAZARD ZONE - DO NOT EVACUATE HERE</span>`);
         this.safeZoneMarkers.set(zone.id, marker);
         return;
       }
 
       // Valid, uncompromised safe haven!
       const iconHtml = `
-        <div style="background:#10b981; color:#fff; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 0 12px rgba(16,185,129,0.9); font-size:15px;">
+        <div style="background:#ffffff; color:#121212; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid #121212; box-shadow:0 2px 8px rgba(0,0,0,0.15); font-size:15px;">
           🛡️
         </div>
       `;
@@ -421,7 +485,7 @@ class SafePathEngine {
       });
 
       const marker = L.marker([zone.lat, zone.lng], { icon: customIcon }).addTo(this.map);
-      marker.bindPopup(`<strong>🛡️ SAFE HAVEN: ${zone.name}</strong><br/><span style="color:#10b981; font-weight:700;">🟢 ALL CLEAR - SAFE FOR EVACUATION</span><br/>Capacity: ${zone.capacity} persons`);
+      marker.bindPopup(`<strong>🛡️ SAFE HAVEN: ${zone.name}</strong><br/><span style="color:#121212; font-weight:700;">ALL CLEAR - SAFE FOR EVACUATION</span><br/>Capacity: ${zone.capacity} persons`);
       this.safeZoneMarkers.set(zone.id, marker);
     });
   }
@@ -595,27 +659,33 @@ class SafePathEngine {
         }
       }
 
+      // FREEWAY SAFETY BARRIER: CA-57 (Orange Freeway) runs north-south along the eastern border of campus.
+      // Pedestrians must NEVER be routed onto or across the freeway corridor (lng > -117.8825).
+      if (nodeA.lng > -117.8825 || nodeB.lng > -117.8825) {
+        hazardWeight += 1000000; // Impassable freeway barrier
+      }
+
       graph.get(edge.from).push({ to: edge.to, weight: baseDist + hazardWeight, node: nodeB });
       graph.get(edge.to).push({ to: edge.from, weight: baseDist + hazardWeight, node: nodeA });
     });
 
-    // 3. Define target Safe Havens and STRICTLY filter out any that are inside the red danger zone!
+    // 3. Define target Safe Havens (STRICTLY WEST OF CA-57 FREEWAY) and filter out any inside the danger zone!
     const allSafeHavens = [
       { id: 'SZ1', name: 'North Quad Assembly Field (SZ1)', lat: 33.8842, lng: -117.8855, nodeId: 'N6' },
-      { id: 'SZ2', name: 'East Perimeter Gate & Triage (SZ2)', lat: 33.8825, lng: -117.8805, nodeId: 'N13' },
+      { id: 'SZ2', name: 'East Campus Safe Haven (West of CA-57)', lat: 33.8830, lng: -117.8840, nodeId: 'N13' },
       { id: 'SZ3', name: 'West Stadium Pavilion (SZ3)', lat: 33.8850, lng: -117.8895, nodeId: 'N10' },
       { id: 'SZ4', name: 'South Gate Egress (SZ4)', lat: 33.8785, lng: -117.8850, nodeId: 'N16' }
     ];
 
-    let safeZoneTargets = allSafeHavens.filter(sz => !this.isLocationInHazard(sz.lat, sz.lng, 35));
+    let safeZoneTargets = allSafeHavens.filter(sz => sz.lng <= -117.8825 && !this.isLocationInHazard(sz.lat, sz.lng, 35));
 
-    // Fallback: If a massive catastrophe covers all standard havens, use outer regional havens
+    // Fallback: If a massive catastrophe covers all standard havens, use outer regional havens (ALL WEST OF FREEWAY)
     if (safeZoneTargets.length === 0) {
       safeZoneTargets = [
-        { id: 'SZ-EXT', name: 'East Municipal Egress (SZ-EXT)', lat: 33.8825, lng: -117.8760, nodeId: 'N13' },
-        { id: 'SZ-EXT', name: 'South Regional Safe Center (SZ-EXT)', lat: 33.8745, lng: -117.8850, nodeId: 'N16' },
-        { id: 'SZ-EXT', name: 'North Regional Assembly (SZ-EXT)', lat: 33.8885, lng: -117.8855, nodeId: 'N6' }
-      ].filter(sz => !this.isLocationInHazard(sz.lat, sz.lng, 10));
+        { id: 'SZ-EXT1', name: 'North Regional Assembly (SZ-EXT)', lat: 33.8885, lng: -117.8855, nodeId: 'N6' },
+        { id: 'SZ-EXT2', name: 'West Regional Safe Center (SZ-EXT)', lat: 33.8850, lng: -117.8920, nodeId: 'N10' },
+        { id: 'SZ-EXT3', name: 'South Regional Safe Center (SZ-EXT)', lat: 33.8745, lng: -117.8850, nodeId: 'N16' }
+      ].filter(sz => sz.lng <= -117.8825 && !this.isLocationInHazard(sz.lat, sz.lng, 10));
     }
 
     if (safeZoneTargets.length === 0) {
@@ -769,9 +839,9 @@ class SafePathEngine {
     if (status === 'NORMAL') {
       if (header) {
         header.className = 'gmaps-nav-header';
-        header.style.background = '#15803d';
+        header.style.background = '#121212';
       }
-      if (icon) icon.textContent = '🟢';
+      if (icon) icon.textContent = '✓';
       if (primary) primary.textContent = 'Campus Status: All Clear';
       if (secondary) secondary.textContent = 'Pedestrian walkways operating normally. No active emergencies in your sector.';
       if (pill) {
@@ -783,9 +853,9 @@ class SafePathEngine {
         eta.className = 'gmaps-eta-badge';
       }
       if (dist) dist.textContent = '(Safe Zone)';
-      if (haven) haven.textContent = '🛡️ CSUF Safe Campus';
+      if (haven) haven.textContent = 'CSUF Safe Campus';
       if (hazardPill) {
-        hazardPill.textContent = '🟢 SAFE';
+        hazardPill.textContent = '✓ SAFE';
         hazardPill.className = 'badge badge-success';
       }
       if (itinerary) {
@@ -797,10 +867,41 @@ class SafePathEngine {
           </div>
         `;
       }
+    } else if (status === 'SAFE_OUTSIDE_HAZARD') {
+      if (header) {
+        header.className = 'gmaps-nav-header';
+        header.style.background = '#121212';
+      }
+      if (icon) icon.textContent = '✓';
+      if (primary) primary.textContent = 'Location Safe: Outside Affected Area';
+      if (secondary) secondary.textContent = `Active emergency (${options.activeAlert ? options.activeAlert.name : 'Alert'}) is active elsewhere on campus. You are outside the hazard perimeter.`;
+      if (pill) {
+        pill.textContent = 'SAFE';
+        pill.className = 'badge badge-success';
+      }
+      if (eta) {
+        eta.textContent = 'Safe ✓';
+        eta.className = 'gmaps-eta-badge';
+      }
+      if (dist) dist.textContent = `(${Math.round(options.distToCenter || 0)}m from incident)`;
+      if (haven) haven.textContent = 'CSUF Safe Campus';
+      if (hazardPill) {
+        hazardPill.textContent = '✓ SAFE';
+        hazardPill.className = 'badge badge-success';
+      }
+      if (itinerary) {
+        itinerary.innerHTML = `
+          <div class="itinerary-step">
+            <div class="itinerary-step-icon">✓</div>
+            <div class="itinerary-step-text"><strong>Current Location Outside Affected Hazard Zone</strong> - No evacuation required</div>
+            <div class="itinerary-step-dist">Safe</div>
+          </div>
+        `;
+      }
     } else if (status === 'ARRIVED') {
       if (header) {
         header.className = 'gmaps-nav-header';
-        header.style.background = '#059669';
+        header.style.background = '#121212';
       }
       if (icon) icon.textContent = '🏁';
       if (primary) primary.textContent = `Safely Arrived at ${options.bestSafe ? options.bestSafe.name : 'Safe Haven'}`;
@@ -814,9 +915,9 @@ class SafePathEngine {
         eta.className = 'gmaps-eta-badge';
       }
       if (dist) dist.textContent = '(0 meters)';
-      if (haven && options.bestSafe) haven.textContent = `🛡️ ${options.bestSafe.name}`;
+      if (haven && options.bestSafe) haven.textContent = `${options.bestSafe.name}`;
       if (hazardPill) {
-        hazardPill.textContent = '🟢 SAFE AT HAVEN';
+        hazardPill.textContent = '✓ SAFE AT HAVEN';
         hazardPill.className = 'badge badge-success';
       }
       if (itinerary) {
@@ -831,8 +932,8 @@ class SafePathEngine {
     } else if (status === 'HAZARD') {
       const inHazard = options.inHazard;
       if (header) {
-        header.className = `gmaps-nav-header ${inHazard ? 'hazard' : ''}`;
-        header.style.background = inHazard ? '#dc2626' : '#2563eb';
+        header.className = 'gmaps-nav-header';
+        header.style.background = '#121212';
       }
       if (icon) icon.textContent = inHazard ? '🏃' : '⬆️';
       if (primary) {
@@ -842,22 +943,22 @@ class SafePathEngine {
       }
       if (secondary) {
         secondary.textContent = inHazard
-          ? `Active emergency hazard (${options.activeAlert ? options.activeAlert.name : 'Alert'}) nearby. Follow green dashed route.`
+          ? `Active emergency hazard (${options.activeAlert ? options.activeAlert.name : 'Alert'}) nearby. Follow designated route.`
           : 'Campus perimeter advisory in effect. Stay on designated safe path.';
       }
       if (pill) {
-        pill.textContent = inHazard ? '🚨 EVACUATE' : 'PROCEED';
+        pill.textContent = inHazard ? 'EVACUATE' : 'PROCEED';
         pill.className = inHazard ? 'badge badge-danger' : 'badge badge-info';
       }
       if (eta) {
         eta.textContent = `~${options.estMinutes} min`;
-        eta.className = `gmaps-eta-badge ${inHazard ? 'hazard' : ''}`;
+        eta.className = 'gmaps-eta-badge';
       }
       if (dist) dist.textContent = `(${Math.round(options.totalDistMeters)} meters)`;
-      if (haven && options.bestSafe) haven.textContent = `🛡️ ${options.bestSafe.name}`;
+      if (haven && options.bestSafe) haven.textContent = `${options.bestSafe.name}`;
       if (hazardPill) {
-        hazardPill.textContent = inHazard ? '🚨 IN HAZARD' : '⚠️ WARNING';
-        hazardPill.className = inHazard ? 'badge badge-danger' : 'badge badge-warning';
+        hazardPill.textContent = inHazard ? '⚠️ IN HAZARD' : '✓ SAFE';
+        hazardPill.className = inHazard ? 'badge badge-danger' : 'badge badge-success';
       }
       if (itinerary) {
         itinerary.innerHTML = `
@@ -926,6 +1027,51 @@ class SafePathEngine {
     const distToCenter = this.calculateDistanceMeters(this.userLat, this.userLng, activeAlert.latitude, activeAlert.longitude);
     const inHazard = (distToCenter <= activeAlert.radiusMeters);
 
+    if (!inHazard) {
+      if (this.activeRoutePolyline && this.map) {
+        this.map.removeLayer(this.activeRoutePolyline);
+        this.activeRoutePolyline = null;
+      }
+      this.updateGoogleMapsHUD('SAFE_OUTSIDE_HAZARD', { activeAlert, distToCenter });
+      const evacBtn = document.getElementById('btn-evacuate-move') || document.getElementById('btn-walk-sim');
+      if (evacBtn && !this.moveInterval) {
+        evacBtn.textContent = 'Safe (Outside Affected Area)';
+        evacBtn.className = 'btn btn-secondary';
+        evacBtn.style.boxShadow = 'none';
+      }
+
+      if (container) {
+        container.className = 'evacuation-card';
+        container.style.border = '1px solid #cccccc';
+        container.style.background = '#fafafa';
+        container.innerHTML = `
+          <div class="evac-header">
+            <div class="evac-title-wrap">
+              <span class="evac-icon">✓</span>
+              <div>
+                <div class="evac-label" style="color: #666666;">LOCATION SAFE: OUTSIDE AFFECTED AREA</div>
+                <div class="evac-dest-name">CSUF Campus · ${this.userName}</div>
+              </div>
+            </div>
+            <div>
+              <span class="badge badge-success" style="font-size:0.85rem; padding:4px 10px;">SAFE (OUTSIDE HAZARD)</span>
+            </div>
+          </div>
+          <div style="margin-top: 8px; font-size: 0.85rem; color: #666666;">
+            An alert (${activeAlert.name}) is active ${Math.round(distToCenter)}m away, but you are outside the affected hazard zone. No evacuation required.
+          </div>
+        `;
+      }
+      return;
+    }
+
+    const evacBtn = document.getElementById('btn-evacuate-move') || document.getElementById('btn-walk-sim');
+    if (evacBtn && !this.moveInterval) {
+      evacBtn.textContent = '🏃 Move to Nearest Safe Zone';
+      evacBtn.className = 'btn btn-primary';
+      evacBtn.style.boxShadow = 'none';
+    }
+
     const routeInfo = this.calculateSafeRoute(this.userLat, this.userLng);
     if (!routeInfo || !this.map) return;
 
@@ -943,33 +1089,33 @@ class SafePathEngine {
 
       if (container) {
         container.className = 'evacuation-card';
-        container.style.border = '2px solid #10b981';
-        container.style.background = 'rgba(16, 185, 129, 0.15)';
+        container.style.border = '1px solid #121212';
+        container.style.background = '#fafafa';
         container.innerHTML = `
           <div class="evac-header">
             <div class="evac-title-wrap">
               <span class="evac-icon">🛡️</span>
               <div>
-                <div class="evac-label" style="color: #34d399;">SAFELY ARRIVED AT EVACUATION HAVEN</div>
+                <div class="evac-label" style="color: #121212;">SAFELY ARRIVED AT EVACUATION HAVEN</div>
                 <div class="evac-dest-name">${bestSafe.name}</div>
               </div>
             </div>
             <div>
-              <span class="badge badge-success" style="font-size:0.9rem; padding:6px 14px;">🟢 SAFE AT HAVEN</span>
+              <span class="badge badge-success" style="font-size:0.85rem; padding:4px 10px;">SAFE AT HAVEN</span>
             </div>
           </div>
           <div class="evac-stats-row">
             <div class="stat-item">
               <span class="stat-name">HAVEN:</span>
-              <span style="color:#34d399; font-weight:700;">${bestSafe.name}</span>
+              <span style="color:#121212; font-weight:700;">${bestSafe.name}</span>
             </div>
             <div class="stat-item">
               <span class="stat-name">DISTANCE:</span>
-              <span class="stat-bold" style="color:#10b981;">0 meters</span>
+              <span class="stat-bold" style="color:#121212;">0 meters</span>
             </div>
             <div class="stat-item">
               <span class="stat-name">EST. TIME:</span>
-              <span class="stat-bold" style="color:#10b981;">Arrived 🛡️</span>
+              <span class="stat-bold" style="color:#121212;">Arrived 🛡️</span>
             </div>
           </div>
         `;
@@ -977,16 +1123,16 @@ class SafePathEngine {
       return;
     }
 
-    // Draw the Green Safe Route Line on Map
+    // Draw the Black Safe Route Line on Map
     if (this.activeRoutePolyline) {
       this.map.removeLayer(this.activeRoutePolyline);
     }
 
     this.activeRoutePolyline = L.polyline(routeCoords, {
-      color: '#10b981',
-      weight: 6,
+      color: '#121212',
+      weight: 5,
       opacity: 0.95,
-      dashArray: '8, 8',
+      dashArray: '8, 6',
       lineCap: 'round'
     }).addTo(this.map);
 
@@ -995,16 +1141,16 @@ class SafePathEngine {
     // Update the DIRECT Safe Route Display Box
     if (container) {
       container.className = `evacuation-card ${inHazard ? 'in-hazard' : ''}`;
-      container.style.border = inHazard ? '2px solid #ef4444' : '2px solid #10b981';
-      container.style.background = inHazard ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.12)';
+      container.style.border = inHazard ? '1.5px solid #121212' : '1px solid #cccccc';
+      container.style.background = inHazard ? '#fafafa' : '#ffffff';
 
       container.innerHTML = `
         <div class="evac-header">
           <div class="evac-title-wrap">
-            <span class="evac-icon">${inHazard ? '🚨' : '🛡️'}</span>
+            <span class="evac-icon">${inHazard ? '🏃' : '🛡️'}</span>
             <div>
-              <div class="evac-label" style="color: ${inHazard ? '#f87171' : '#34d399'};">
-                ${inHazard ? `🚨 DANGER: INSIDE ${activeAlert.name.toUpperCase()} ZONE!` : 'RECOMMENDED SAFE EVACUATION DESTINATION'}
+              <div class="evac-label" style="color: ${inHazard ? '#121212' : '#666666'};">
+                ${inHazard ? `INSIDE ${activeAlert.name.toUpperCase()} ZONE` : 'SAFE EVACUATION DESTINATION'}
               </div>
               <div class="evac-dest-name">
                 ${bestSafe.name}
@@ -1013,8 +1159,8 @@ class SafePathEngine {
           </div>
 
           <div>
-            <span class="badge ${inHazard ? 'badge-danger' : 'badge-success'}" style="font-size:0.9rem; padding:6px 14px;">
-              ${inHazard ? '🚨 EVACUATE IMMEDIATELY' : '🟢 PROCEED TO HAVEN'}
+            <span class="badge ${inHazard ? 'badge-danger' : 'badge-success'}" style="font-size:0.85rem; padding:4px 10px;">
+              ${inHazard ? 'EVACUATE IMMEDIATELY' : 'PROCEED TO HAVEN'}
             </span>
           </div>
         </div>
@@ -1022,7 +1168,7 @@ class SafePathEngine {
         <div class="evac-stats-row">
           <div class="stat-item">
             <span class="stat-name">NEAREST HAVEN:</span>
-            <span style="color:#34d399; font-weight:700;">${bestSafe.name}</span>
+            <span style="color:#121212; font-weight:700;">${bestSafe.name}</span>
           </div>
           <div class="stat-item">
             <span class="stat-name">DISTANCE:</span>
@@ -1072,30 +1218,10 @@ class SafePathEngine {
     // Audible alarm
     this.playAlarmSound();
 
-    // Render prominent notification banner
+    // Banner removed on student panel per user instruction
     const notifyContainer = document.getElementById('user-alert-notification-area');
     if (notifyContainer) {
-      notifyContainer.innerHTML = `
-        <div id="active-alert-toast" class="emergency-notification-banner">
-          <div class="notification-icon-pulse">${alert.icon || '🚨'}</div>
-          <div class="notification-details">
-            <div class="notification-title">
-              🚨 EMERGENCY ALERT: ${alert.title || alert.name}
-            </div>
-            <div class="notification-body">
-              ${alert.instructions || 'Emergency active. Evacuate immediately via designated safe pathways.'}
-            </div>
-            <div style="font-size: 0.75rem; color: #fca5a5; margin-top: 4px; font-weight: 700;">
-              SEVERITY: ${alert.severity || 'CRITICAL'} • GEOFENCE RADIUS: ${alert.radiusMeters}m • STATUS: SAFE ROUTE ACTIVE
-            </div>
-          </div>
-          <div class="notification-actions">
-            <button class="notification-dismiss-btn" onclick="document.getElementById('active-alert-toast')?.remove()">
-              ✕ Dismiss
-            </button>
-          </div>
-        </div>
-      `;
+      notifyContainer.innerHTML = '';
     }
   }
 
@@ -1149,12 +1275,14 @@ class SafePathEngine {
   // --- ADMIN BROADCAST & RESOLVE METHODS (Required by admin.html and demo.html) ---
   async broadcastAdminAlert(formData) {
     try {
+      this.clearAdminPin();
       const res = await fetch('/api/alerts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
       const data = await res.json();
+      this.clearAdminPin();
       return data;
     } catch (e) {
       console.error('Failed to broadcast alert:', e);
@@ -1220,9 +1348,21 @@ class SafePathEngine {
             st.lat = parseFloat(u.latitude);
             st.lng = parseFloat(u.longitude);
             st.status = u.status;
+            st.name = u.name;
             st.distanceMeters = u.distanceMeters;
             st.estMinutes = u.estMinutes;
             st.targetHaven = u.targetHaven;
+          } else if (u.role !== 'Admin' && u.email !== 'admin@safepath.com') {
+            this.students.push({
+              email: u.email,
+              name: u.name,
+              lat: parseFloat(u.latitude),
+              lng: parseFloat(u.longitude),
+              status: u.status || 'NORMAL',
+              distanceMeters: u.distanceMeters,
+              estMinutes: u.estMinutes,
+              targetHaven: u.targetHaven
+            });
           }
         });
         if (this.role === 'admin') {
@@ -1239,24 +1379,29 @@ class SafePathEngine {
           let timeDisplay = '<span style="color:#10b981; font-size:0.85rem; font-weight:600;">🟢 Normal</span>';
 
           if (this.activeAlerts.length > 0) {
-            if (dist === undefined || mins === undefined) {
-              const route = this.calculateSafeRoute(parseFloat(u.latitude), parseFloat(u.longitude));
-              if (route && route.bestSafe) {
-                dist = Math.round(route.totalDistMeters);
-                mins = route.estMinutes;
-                targetHaven = route.bestSafe.name || route.bestSafe.id;
+            if (u.status === 'NORMAL') {
+              distDisplay = '<span style="color:#10b981; font-size:0.85rem; font-weight:600;">Safe (Outside Hazard)</span>';
+              timeDisplay = '<span class="badge badge-success" style="font-size:11px; padding:3px 8px;">🟢 Safe</span>';
+            } else {
+              if (dist === undefined || mins === undefined) {
+                const route = this.calculateSafeRoute(parseFloat(u.latitude), parseFloat(u.longitude));
+                if (route && route.bestSafe) {
+                  dist = Math.round(route.totalDistMeters);
+                  mins = route.estMinutes;
+                  targetHaven = route.bestSafe.name || route.bestSafe.id;
+                }
               }
-            }
 
-            if (dist !== undefined && mins !== undefined) {
-              if (dist <= 25 || mins === 0) {
-                distDisplay = `<span style="color:#10b981; font-weight:700;">0 meters</span><br/><span style="font-size:11px; color:#34d399;">(Safe Zone)</span>`;
-                timeDisplay = `<span class="badge badge-success" style="font-size:11px; padding:3px 8px;">🛡️ Safe Haven</span>`;
-              } else {
-                const distColor = u.status === 'IN HAZARD' ? '#f87171' : '#34d399';
-                distDisplay = `<strong style="color:${distColor};">${dist} meters</strong><br/><span style="color:#9ca3af; font-size:11px;">to ${targetHaven || 'Safe Zone'}</span>`;
-                const timeColor = u.status === 'IN HAZARD' ? '#ef4444' : '#38bdf8';
-                timeDisplay = `<strong style="color:${timeColor}; font-size:0.95rem;">~${mins} min</strong><br/><span style="color:#9ca3af; font-size:11px;">(safe egress pace)</span>`;
+              if (dist !== undefined && mins !== undefined) {
+                if (dist <= 25 || mins === 0) {
+                  distDisplay = `<span style="color:#10b981; font-weight:700;">0 meters</span><br/><span style="font-size:11px; color:#34d399;">(Safe Zone)</span>`;
+                  timeDisplay = `<span class="badge badge-success" style="font-size:11px; padding:3px 8px;">🛡️ Safe Haven</span>`;
+                } else {
+                  const distColor = u.status === 'IN HAZARD' ? '#f87171' : '#34d399';
+                  distDisplay = `<strong style="color:${distColor};">${dist} meters</strong><br/><span style="color:#9ca3af; font-size:11px;">to ${targetHaven || 'Safe Zone'}</span>`;
+                  const timeColor = u.status === 'IN HAZARD' ? '#ef4444' : '#38bdf8';
+                  timeDisplay = `<strong style="color:${timeColor}; font-size:0.95rem;">~${mins} min</strong><br/><span style="color:#9ca3af; font-size:11px;">(safe egress pace)</span>`;
+                }
               }
             }
           }
@@ -1359,6 +1504,7 @@ class SafePathEngine {
 
       eventSource.addEventListener('alert_broadcast', (e) => {
         const data = JSON.parse(e.data);
+        this.clearAdminPin();
         this.activeAlerts.unshift(data.alert);
         this.renderActiveAlertCircles();
         this.renderAllStudentsOnMap();
@@ -1434,16 +1580,17 @@ class SafePathEngine {
     this.activeAlerts.forEach(alert => {
       if (!alert.active) return;
 
-      // DANGER ZONE ALWAYS USES RED COLOR (#dc2626 / #ef4444) AND NEVER GREEN
+      // Monochrome Hazard Zone Styling
       const circle = L.circle([alert.latitude, alert.longitude], {
         radius: alert.radiusMeters,
-        color: '#dc2626',
-        fillColor: '#ef4444',
-        fillOpacity: 0.35,
-        weight: 3
+        color: '#121212',
+        dashArray: '6, 6',
+        fillColor: '#121212',
+        fillOpacity: 0.15,
+        weight: 2
       }).addTo(this.map);
 
-      circle.bindPopup(`<strong>${alert.icon} ${alert.name}</strong><br/><span style="color:#ef4444; font-weight:700;">🚨 DANGER ZONE</span><br/>Radius: ${alert.radiusMeters}m`);
+      circle.bindPopup(`<strong>${alert.icon || '⚠️'} ${alert.name}</strong><br/><span style="color:#121212; font-weight:700;">HAZARD ZONE</span><br/>Radius: ${alert.radiusMeters}m`);
       this.hazardCircles.set(alert.id, circle);
     });
   }
@@ -1455,6 +1602,12 @@ class SafePathEngine {
       const hadNoAlerts = this.activeAlerts.length === 0;
       this.activeAlerts = data.active || [];
       this.renderActiveAlertCircles();
+
+      // If active alert exists, hide the draft epicenter pin to prevent confusion
+      if (this.activeAlerts.length > 0) {
+        this.clearAdminPin();
+      }
+
       this.renderAllStudentsOnMap();
       this.computeSafeRoute();
       if (this.activeAlerts.length > 0 && hadNoAlerts) {
@@ -1551,6 +1704,17 @@ class SafePathEngine {
 
     if (this.activeAlerts.length === 0) {
       alert('Campus status is All Clear! No active emergency evacuation required.');
+      return;
+    }
+
+    // CHECK: Is student in the affected hazard area?
+    const me = this.students.find(s => s.email === this.userEmail);
+    const userLat = me ? me.lat : this.userLat;
+    const userLng = me ? me.lng : this.userLng;
+    const inHazard = this.isLocationInHazard(userLat, userLng);
+
+    if (!inHazard) {
+      alert('You are outside the affected hazard area. No evacuation required; you are safe at your current location.');
       return;
     }
 

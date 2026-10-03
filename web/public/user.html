@@ -8,32 +8,29 @@
   <link rel="stylesheet" href="/leaflet.css" />
   <script src="/leaflet.js"></script>
   <style>
-    /* Google Maps Navigation Style Components */
+    /* Google Maps Navigation Style Components - Minimalist Black & White */
     .gmaps-nav-card {
       background: #ffffff;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 14px;
+      border: 1px solid #cccccc;
+      border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
       margin-bottom: 16px;
     }
     .gmaps-nav-header {
-      background: #15803d;
+      background: #121212;
       color: #ffffff;
       padding: 14px 18px;
       display: flex;
       align-items: center;
       gap: 14px;
     }
-    .gmaps-nav-header.hazard {
-      background: #dc2626;
-    }
     .gmaps-maneuver-icon {
-      font-size: 2.2rem;
-      background: rgba(255,255,255,0.2);
-      width: 52px;
-      height: 52px;
-      border-radius: 12px;
+      font-size: 1.8rem;
+      background: rgba(255,255,255,0.15);
+      width: 46px;
+      height: 46px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -43,52 +40,49 @@
       flex: 1;
     }
     .gmaps-instruction-primary {
-      font-size: 1.15rem;
-      font-weight: 800;
+      font-size: 1.1rem;
+      font-weight: 700;
       line-height: 1.3;
     }
     .gmaps-instruction-secondary {
       font-size: 0.85rem;
-      opacity: 0.92;
+      opacity: 0.85;
       margin-top: 2px;
     }
     .gmaps-stats-bar {
-      background: #f8fafc;
+      background: #fafafa;
       padding: 12px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 12px;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 1px solid #eaeaea;
     }
     .gmaps-eta-badge {
       font-size: 1.35rem;
       font-weight: 800;
-      color: #15803d;
-    }
-    .gmaps-eta-badge.hazard {
-      color: #dc2626;
+      color: #121212;
     }
     .gmaps-dist-badge {
       font-size: 0.95rem;
-      color: #475569;
+      color: #666666;
       font-weight: 600;
       margin-left: 8px;
     }
     .gmaps-destination-badge {
-      font-size: 0.88rem;
-      font-weight: 700;
-      color: #1e40af;
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #121212;
+      background: #f1f1f1;
+      border: 1px solid #cccccc;
       padding: 4px 10px;
-      border-radius: 8px;
+      border-radius: 4px;
     }
     .itinerary-toggle {
       background: none;
       border: none;
-      color: #2563eb;
+      color: #121212;
       font-weight: 700;
       font-size: 0.85rem;
       cursor: pointer;
@@ -106,7 +100,7 @@
       display: flex;
       gap: 12px;
       padding: 8px 0;
-      border-bottom: 1px solid #f1f5f9;
+      border-bottom: 1px solid #f1f1f1;
       font-size: 0.88rem;
     }
     .itinerary-step:last-child {
@@ -119,15 +113,15 @@
     }
     .itinerary-step-text {
       flex: 1;
-      color: #1e293b;
+      color: #121212;
     }
     .itinerary-step-dist {
-      color: #64748b;
+      color: #666666;
       font-weight: 600;
       font-size: 0.8rem;
     }
 
-    /* Google Maps Active Navigation Overlay matching media_1790888545376.png */
+    /* Google Maps Active Navigation Overlay */
     .gmaps-nav-overlay {
       position: absolute;
       top: 0;
@@ -145,24 +139,25 @@
       margin: 14px 14px 0 14px;
     }
     .gmaps-top-card {
-      background: #005a4e;
+      background: #121212;
       color: #ffffff;
-      border-radius: 16px;
+      border-radius: 12px;
       padding: 14px 18px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      border: 1px solid #333333;
       display: flex;
       align-items: center;
       gap: 14px;
     }
     .gmaps-maneuver-arrow {
-      background: rgba(255,255,255,0.18);
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
+      background: rgba(255,255,255,0.15);
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.85rem;
+      font-size: 1.6rem;
       font-weight: 800;
       color: #ffffff;
       flex-shrink: 0;
@@ -171,14 +166,15 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: #00433a;
+      background: #222222;
       color: #ffffff;
-      padding: 5px 14px;
-      border-radius: 0 0 10px 10px;
+      padding: 4px 12px;
+      border-radius: 0 0 8px 8px;
       margin-left: 20px;
-      font-size: 0.85rem;
-      font-weight: 700;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: 1px solid #333333;
+      border-top: none;
     }
     .gmaps-floating-tools {
       pointer-events: auto;
@@ -187,25 +183,26 @@
       top: 120px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
     .gmaps-tool-pill {
-      width: 44px;
-      height: 44px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       background: #ffffff;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+      border: 1px solid #cccccc;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       cursor: pointer;
-      transition: transform 0.15s, background-color 0.15s;
+      transition: all 0.15s ease;
     }
     .gmaps-tool-pill:hover {
-      background: #f8fafc;
-      transform: scale(1.06);
+      background: #fafafa;
+      border-color: #121212;
+      transform: scale(1.05);
     }
     .gmaps-floating-bottom {
       pointer-events: auto;
@@ -213,33 +210,32 @@
     }
     .gmaps-dock-card {
       background: #ffffff;
-      border-radius: 20px;
+      border-radius: 12px;
       padding: 10px 20px 16px 20px;
-      box-shadow: 0 -4px 25px rgba(0,0,0,0.2);
-      border: 1px solid #e2e8f0;
+      box-shadow: 0 -2px 16px rgba(0,0,0,0.08);
+      border: 1px solid #cccccc;
     }
     .gmaps-grab-bar {
-      width: 38px;
+      width: 36px;
       height: 4px;
-      background: #cbd5e1;
+      background: #cccccc;
       border-radius: 2px;
       margin: 0 auto 10px auto;
     }
     .btn-gmaps-exit {
-      background: #d93025;
+      background: #121212;
       color: #ffffff;
-      border: none;
-      border-radius: 28px;
-      padding: 11px 26px;
-      font-size: 1.05rem;
-      font-weight: 800;
+      border: 1px solid #121212;
+      border-radius: 6px;
+      padding: 8px 20px;
+      font-size: 0.95rem;
+      font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgba(217, 48, 37, 0.4);
-      transition: background-color 0.15s, transform 0.1s;
+      transition: all 0.15s ease;
     }
     .btn-gmaps-exit:hover {
-      background: #c5221f;
-      transform: scale(1.03);
+      background: #000000;
+      border-color: #000000;
     }
   </style>
 </head>
@@ -248,14 +244,14 @@
   <!-- Top Navigation Bar with User Badge & Logout -->
   <nav class="navbar">
     <a href="/" class="brand">
-      🛡️ SafePath <span class="brand-badge" style="background:#2563eb;">📱 Student View</span>
+      🛡️ SafePath <span class="brand-badge">Student View</span>
     </a>
     <div class="nav-links">
-      <div id="user-badge" style="background:#eff6ff; border:1px solid #bfdbfe; padding:5px 12px; border-radius:8px; font-size:0.85rem; color:#1e40af; font-weight:700; display:flex; align-items:center; gap:6px;">
+      <div id="user-badge" style="background:#fafafa; border:1px solid #cccccc; padding:5px 12px; border-radius:4px; font-size:0.85rem; color:#121212; font-weight:600; display:flex; align-items:center; gap:6px;">
         <span>👤</span> <span id="user-name-display">Student</span>
       </div>
-      <button onclick="handleLogout()" class="nav-btn" style="color:#dc2626; border-color:#fca5a5; font-weight:700; cursor:pointer;">
-        🚪 Sign Out
+      <button onclick="handleLogout()" class="nav-btn" style="cursor:pointer;">
+        Sign Out
       </button>
       <a href="/login.html" class="nav-btn">Switch Account</a>
     </div>
@@ -264,23 +260,20 @@
   <div class="container" style="max-width: 1200px;">
     
     <!-- Student Header Banner -->
-    <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 14px 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+    <div style="background: #fafafa; border: 1px solid #eaeaea; border-radius: 8px; padding: 14px 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
       <div>
-        <div style="font-size: 1.1rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-          <span>📱 PERSONAL SAFE NAVIGATION & EVACUATION</span>
-          <span class="badge badge-info" style="font-size:0.75rem;">LIVE GPS</span>
+        <div style="font-size: 1.1rem; font-weight: 800; color: #121212; display: flex; align-items: center; gap: 8px;">
+          <span>PERSONAL SAFE NAVIGATION & EVACUATION</span>
+          <span class="badge">LIVE GPS</span>
         </div>
-        <div style="font-size: 0.85rem; color: #64748b; margin-top: 3px;">
-          Tracking position for <strong id="student-identity-text" style="color:#2563eb;">Student</strong>. Real-time geofenced routes navigate directly away from active emergency hazards to certified campus safe havens.
+        <div style="font-size: 0.85rem; color: #666666; margin-top: 3px;">
+          Tracking position for <strong id="student-identity-text" style="color:#121212;">Student</strong>. Real-time geofenced routes navigate away from active emergency hazards to campus safe havens.
         </div>
       </div>
       <div style="display:flex; align-items:center; gap:8px;">
-        <span class="badge badge-success" id="pill-hazard-status">🟢 SAFE</span>
+        <span class="badge badge-success" id="pill-hazard-status">SAFE</span>
       </div>
     </div>
-
-    <!-- Active Emergency Toast / Notification Banner -->
-    <div id="user-alert-notification-area"></div>
 
     <!-- GOOGLE MAPS-STYLE NAVIGATION HUD CARD -->
     <div id="gmaps-nav-hud" class="gmaps-nav-card">
@@ -288,10 +281,10 @@
         <div id="gmaps-maneuver-icon" class="gmaps-maneuver-icon">⬆️</div>
         <div class="gmaps-instruction-wrap">
           <div id="gmaps-primary-instruction" class="gmaps-instruction-primary">Proceed on Titan Walkway toward Safe Haven</div>
-          <div id="gmaps-secondary-instruction" class="gmaps-instruction-secondary">Follow green pedestrian evacuation path to campus perimeter</div>
+          <div id="gmaps-secondary-instruction" class="gmaps-instruction-secondary">Follow pedestrian evacuation path to campus safe haven</div>
         </div>
         <div>
-          <span id="gmaps-status-pill" class="badge badge-success" style="font-size:0.8rem; padding:5px 12px;">ALL CLEAR</span>
+          <span id="gmaps-status-pill" class="badge badge-success" style="font-size:0.8rem; padding:4px 10px;">ALL CLEAR</span>
         </div>
       </div>
 
@@ -338,18 +331,18 @@
 
     <!-- STUDENT MAP VIEW WITH GOOGLE MAPS NAVIGATION OVERLAY -->
     <div class="card" style="padding: 12px; background:#ffffff;">
-      <div id="user-map-container" style="position:relative; height: 560px; border-radius: 12px; overflow: hidden;">
-        <div id="user-map" class="map-container" style="width: 100%; height: 100%; border-radius: 12px;"></div>
+      <div id="user-map-container" style="position:relative; height: 560px; border-radius: 8px; overflow: hidden;">
+        <div id="user-map" class="map-container" style="width: 100%; height: 100%; border-radius: 8px;"></div>
 
-        <!-- Google Maps Turn-by-Turn Navigation HUD Overlay matching media_1790888545376.png -->
+        <!-- Google Maps Turn-by-Turn Navigation HUD Overlay -->
         <div id="gmaps-nav-overlay" class="gmaps-nav-overlay">
-          <!-- 1. Top Green Floating Card -->
+          <!-- 1. Top Floating Card -->
           <div class="gmaps-floating-top">
             <div class="gmaps-top-card">
               <div class="gmaps-maneuver-arrow">⬆</div>
               <div style="flex: 1; min-width: 0;">
-                <div style="font-size: 0.95rem; color: #a7f3d0; font-weight: 500;">toward</div>
-                <div id="gmaps-nav-haven-title" style="font-size: 1.25rem; font-weight: 800; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <div style="font-size: 0.85rem; color: #cccccc; font-weight: 500;">toward</div>
+                <div id="gmaps-nav-haven-title" style="font-size: 1.2rem; font-weight: 800; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                   North Quad Assembly Field
                 </div>
               </div>
@@ -362,7 +355,7 @@
           <!-- 2. Floating Tools Column -->
           <div class="gmaps-floating-tools">
             <button type="button" class="gmaps-tool-pill" title="Information" onclick="alert('SafePath Navigation: Geofenced evacuation route calculated away from hazard area.')">
-              ⚠️
+              ℹ️
             </button>
             <button type="button" class="gmaps-tool-pill" title="Re-center on Position" onclick="window.safePathApp.recenterOnUser()">
               🧭
@@ -378,22 +371,22 @@
             </button>
           </div>
 
-          <!-- 3. Bottom Floating Docked White Card -->
+          <!-- 3. Bottom Floating Docked Card -->
           <div class="gmaps-floating-bottom">
             <div class="gmaps-dock-card">
               <div class="gmaps-grab-bar"></div>
               <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
                 <div>
-                  <div id="gmaps-dock-eta" style="font-size: 1.85rem; font-weight: 800; color: #1e293b; line-height: 1.1;">
-                    2 <span style="font-size: 1.35rem; font-weight: 700;">min</span>
+                  <div id="gmaps-dock-eta" style="font-size: 1.85rem; font-weight: 800; color: #121212; line-height: 1.1;">
+                    2 <span style="font-size: 1.2rem; font-weight: 600;">min</span>
                   </div>
-                  <div id="gmaps-dock-dist-clock" style="font-size: 0.95rem; color: #5f6368; font-weight: 600; margin-top: 3px;">
-                    140 m · 14:05
+                  <div id="gmaps-dock-dist-clock" style="font-size: 0.95rem; color: #666666; font-weight: 500; margin-top: 3px;">
+                    140 m · Active
                   </div>
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 12px;">
-                  <button type="button" title="SafePath Assistant" style="width: 44px; height: 44px; border-radius: 50%; background: #f0f4f9; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; cursor: pointer;" onclick="alert('SafePath Assistant: Keep along the safe evacuation corridor away from the danger zone.')">
+                  <button type="button" title="SafePath Assistant" style="width: 40px; height: 40px; border-radius: 50%; background: #fafafa; border: 1px solid #cccccc; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer;" onclick="alert('SafePath Assistant: Keep along the safe evacuation corridor away from the danger zone.')">
                     ✨
                   </button>
                   <button id="btn-gmaps-dock-exit" type="button" class="btn-gmaps-exit" onclick="window.safePathApp.stopNavigation()">
@@ -409,12 +402,12 @@
       <!-- Controls below map -->
       <div class="quick-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 6px; flex-wrap: wrap; gap: 12px;">
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-          <button id="btn-evacuate-move" class="btn btn-warning" style="font-size: 0.95rem; font-weight: 700; padding: 10px 22px; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);" onclick="window.safePathApp.toggleMoveToSafeZone()">
+          <button id="btn-evacuate-move" class="btn btn-primary" style="font-size: 0.95rem; font-weight: 700; padding: 10px 22px;" onclick="window.safePathApp.toggleMoveToSafeZone()">
             🏃 Move to Nearest Safe Zone
           </button>
         </div>
 
-        <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; color: #475569; font-size: 0.9rem;">
+        <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500; color: #666666; font-size: 0.88rem;">
           <input type="checkbox" onchange="window.safePathApp.toggleAccessibility(this.checked)">
           ♿ Wheelchair Accessible (Ramps Only, No Stairs)
         </label>

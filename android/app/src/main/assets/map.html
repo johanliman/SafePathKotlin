@@ -15,12 +15,12 @@
       background: #ffffff;
     }
     .user-pin {
-      background: #3b82f6;
+      background: #121212;
       width: 26px;
       height: 26px;
       border-radius: 50%;
       border: 3px solid #ffffff;
-      box-shadow: 0 0 12px rgba(59, 130, 246, 0.9);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -29,28 +29,30 @@
       font-weight: bold;
     }
     .user-pin.danger {
-      background: #ef4444;
-      box-shadow: 0 0 16px rgba(239, 68, 68, 0.9);
+      background: #121212;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
     }
     .fleet-pin {
-      background: #1e293b;
+      background: #ffffff;
       width: 22px;
       height: 22px;
       border-radius: 50%;
-      border: 2px solid #10b981;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+      border: 1.5px solid #121212;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #fff;
+      color: #121212;
       font-size: 11px;
     }
     .fleet-pin.danger {
-      border-color: #ef4444;
+      background: #121212;
+      color: #ffffff;
+      border-color: #ffffff;
     }
     .haven-pin {
-      background: rgba(16, 185, 129, 0.2);
-      border: 2px solid #10b981;
+      background: #ffffff;
+      border: 2px solid #121212;
       border-radius: 50%;
       width: 28px;
       height: 28px;
@@ -63,14 +65,15 @@
       position: absolute;
       top: -24px;
       left: -28px;
-      background: rgba(15, 23, 42, 0.9);
-      color: #fff;
+      background: #ffffff;
+      color: #121212;
       font-size: 10px;
       font-weight: 700;
       padding: 2px 6px;
-      border-radius: 6px;
+      border-radius: 4px;
       white-space: nowrap;
       pointer-events: none;
+      border: 1px solid #cccccc;
     }
   </style>
 </head>
@@ -89,16 +92,33 @@
       attribution: '&copy; OpenStreetMap'
     }).addTo(map);
 
+    // Compass Rose Sign on top-right (Black & White Theme)
+    var CompassControl = L.Control.extend({
+      options: { position: 'topright' },
+      onAdd: function() {
+        var div = L.DomUtil.create('div', 'leaflet-compass-widget');
+        div.innerHTML = '<div style="background: rgba(255, 255, 255, 0.96); border-radius: 50%; width: 44px; height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,0.12); border: 1.5px solid #cccccc; user-select: none; margin-top: 4px; margin-right: 4px;">' +
+                          '<div style="font-size: 10px; font-weight: 900; color: #121212; line-height: 1;">▲ N</div>' +
+                          '<div style="display: flex; justify-content: space-between; align-items: center; width: 34px; font-size: 8px; font-weight: 800; color: #666666; line-height: 1;">' +
+                            '<span>W</span><span style="display:inline-block; width:3px; height:3px; background:#121212; border-radius:50%;"></span><span>E</span>' +
+                          '</div>' +
+                          '<div style="font-size: 8px; font-weight: 800; color: #888888; line-height: 1;">▼ S</div>' +
+                        '</div>';
+        return div;
+      }
+    });
+    map.addControl(new CompassControl());
+
     var userMarker = null;
     var otherMarkers = {};
     var hazardCircle = null;
     var routePolyline = null;
     var havenMarkers = {};
 
-    // Safe Havens
+    // Safe Havens (All strictly west of CA-57 Orange Freeway)
     var safeHavens = [
       { id: 'SZ1', name: 'North Quad Assembly (SZ1)', lat: 33.8842, lng: -117.8855 },
-      { id: 'SZ2', name: 'East Perimeter Gate (SZ2)', lat: 33.8825, lng: -117.8805 },
+      { id: 'SZ2', name: 'East Campus Safe Haven (SZ2)', lat: 33.8830, lng: -117.8840 },
       { id: 'SZ3', name: 'West Athletics Pavilion (SZ3)', lat: 33.8850, lng: -117.8895 },
       { id: 'SZ4', name: 'South Gate Egress (SZ4)', lat: 33.8785, lng: -117.8850 }
     ];
@@ -111,7 +131,7 @@
         iconAnchor: [14, 14]
       });
       var m = L.marker([h.lat, h.lng], { icon: icon }).addTo(map);
-      m.bindPopup('<strong>🛡️ Safe Haven: ' + h.name + '</strong><br/><span style="color:#10b981;">🟢 Safe Evacuation Point</span>');
+      m.bindPopup('<strong>🛡️ Safe Haven: ' + h.name + '</strong><br/><span>All Clear Safe Evacuation Point</span>');
       havenMarkers[h.id] = m;
     });
 
@@ -129,8 +149,8 @@
       isNavigating = true;
       currentNavBearing = bearing || 0;
       var html = '<div style="position:relative; width:44px; height:44px; display:flex; align-items:center; justify-content:center;">' +
-                   '<div style="background:#ffffff; border-radius:50%; width:40px; height:40px; box-shadow:0 4px 14px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; border:2px solid #ffffff;">' +
-                     '<div style="width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent; border-bottom:20px solid #1a73e8; transform:rotate(' + currentNavBearing + 'deg); filter:drop-shadow(0 2px 3px rgba(0,0,0,0.2));"></div>' +
+                   '<div style="background:#ffffff; border-radius:50%; width:40px; height:40px; box-shadow:0 2px 10px rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center; border:2px solid #121212;">' +
+                     '<div style="width:0; height:0; border-left:9px solid transparent; border-right:9px solid transparent; border-bottom:18px solid #121212; transform:rotate(' + currentNavBearing + 'deg); filter:drop-shadow(0 1px 2px rgba(0,0,0,0.2));"></div>' +
                    '</div>' +
                  '</div>';
 
@@ -159,7 +179,7 @@
       if (isNavigating) return; // In navigation mode, nav puck takes precedence
 
       var pinClass = inHazard ? 'user-pin danger' : 'user-pin';
-      var statusIcon = inHazard ? '🚨' : '🟢';
+      var statusIcon = inHazard ? '⚠️' : '✓';
       var html = '<div style="position:relative;">' +
                    '<div class="' + pinClass + '">📍</div>' +
                    '<div class="pin-label">YOU: ' + name + ' ' + statusIcon + '</div>' +
@@ -188,7 +208,7 @@
 
       students.forEach(function(s) {
         var pinClass = s.inHazard ? 'fleet-pin danger' : 'fleet-pin';
-        var statusIcon = s.inHazard ? '🚨' : '';
+        var statusIcon = s.inHazard ? '⚠️' : '';
         var html = '<div style="position:relative;">' +
                      '<div class="' + pinClass + '">👤</div>' +
                      '<div class="pin-label">' + s.name.split(' ')[0] + ' ' + statusIcon + '</div>' +
@@ -212,12 +232,13 @@
       }
       hazardCircle = L.circle([lat, lng], {
         radius: radiusMeters,
-        color: '#dc2626',
-        fillColor: '#ef4444',
-        fillOpacity: 0.35,
-        weight: 3
+        color: '#121212',
+        dashArray: '6, 6',
+        fillColor: '#121212',
+        fillOpacity: 0.15,
+        weight: 2
       }).addTo(map);
-      hazardCircle.bindPopup('<strong>🚨 DANGER ZONE: ' + name + '</strong><br/>Radius: ' + radiusMeters + 'm');
+      hazardCircle.bindPopup('<strong>HAZARD ZONE: ' + name + '</strong><br/>Radius: ' + radiusMeters + 'm');
     }
 
     function clearHazard() {
@@ -232,10 +253,10 @@
         map.removeLayer(routePolyline);
       }
       routePolyline = L.polyline(coords, {
-        color: '#10b981',
-        weight: 6,
+        color: '#121212',
+        weight: 5,
         opacity: 0.95,
-        dashArray: '8, 8',
+        dashArray: '8, 6',
         lineCap: 'round'
       }).addTo(map);
     }

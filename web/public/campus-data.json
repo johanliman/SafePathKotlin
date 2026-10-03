@@ -35,14 +35,14 @@
     },
     {
       "id": "SZ2",
-      "name": "East Perimeter Emergency Exit & Triage",
-      "type": "exit",
-      "lat": 33.8825,
-      "lng": -117.8805,
+      "name": "East Campus Safe Haven (West of CA-57)",
+      "type": "assembly_point",
+      "lat": 33.8830,
+      "lng": -117.8840,
       "capacity": 2000,
-      "supplies": ["Paramedic Ambulance Bay", "Evacuation Shuttles", "Rations"],
+      "supplies": ["First Aid Station", "Evacuation Shuttles", "Emergency Water"],
       "accessible": true,
-      "description": "Direct unobstructed road access for municipal emergency responders and vehicle evacuation."
+      "description": "Designated East Campus green assembly haven safely situated west of CA-57 Orange Freeway. Completely avoids freeway and traffic hazards."
     },
     {
       "id": "SZ3",
@@ -79,8 +79,8 @@
     { "id": "N9", "lat": 33.8835, "lng": -117.8870, "name": "Health Center Promenade" },
     { "id": "N10", "lat": 33.8850, "lng": -117.8895, "name": "West Stadium Pavilion (SZ3)" },
     { "id": "N11", "lat": 33.8829, "lng": -117.8840, "name": "Engineering Access Walk" },
-    { "id": "N12", "lat": 33.8829, "lng": -117.8828, "name": "Engineering Quad" },
-    { "id": "N13", "lat": 33.8825, "lng": -117.8805, "name": "East Perimeter Gate (SZ2)" },
+    { "id": "N12", "lat": 33.8829, "lng": -117.8835, "name": "Engineering Quad" },
+    { "id": "N13", "lat": 33.8830, "lng": -117.8840, "name": "East Campus Safe Haven (SZ2)" },
     { "id": "N14", "lat": 33.8808, "lng": -117.8835, "name": "Humanities Terrace" },
     { "id": "N15", "lat": 33.8795, "lng": -117.8840, "name": "Police Center Lane" },
     { "id": "N16", "lat": 33.8785, "lng": -117.8850, "name": "South Gate Egress (SZ4)" },

@@ -21,7 +21,7 @@
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
       background: var(--bg-surface);
-      padding: 14px;
+      padding: 16px;
     }
   </style>
 </head>
@@ -30,17 +30,17 @@
   <!-- Top Navigation -->
   <nav class="navbar">
     <a href="/" class="brand">
-      🛡️ SafePath <span class="brand-badge">⚡ Live Demo</span>
+      🛡️ SafePath <span class="brand-badge">Split Demo</span>
     </a>
-    <div style="font-size:0.82rem; color:#9ca3af; display:flex; align-items:center; gap:6px;">
-      <span>🔴 Admin dispatches hazard on Left</span>
-      <span>➡️</span>
-      <span>📱 Watch nearest safe path & evacuation update on Right</span>
+    <div style="font-size:0.82rem; color:#666666; display:flex; align-items:center; gap:6px;">
+      <span>Left: Admin dispatches hazard</span>
+      <span>•</span>
+      <span>Right: Student safe path & evacuation</span>
     </div>
     <div class="nav-links">
-      <a href="/demo.html" class="nav-btn active">⚡ Split Demo</a>
-      <a href="/admin.html" class="nav-btn">🛡️ Admin</a>
-      <a href="/user.html" class="nav-btn">📱 Student</a>
+      <a href="/demo.html" class="nav-btn active">Split Demo</a>
+      <a href="/admin.html" class="nav-btn">Admin</a>
+      <a href="/user.html" class="nav-btn">Student</a>
     </div>
   </nav>
 
@@ -51,8 +51,8 @@
       <!-- ================= LEFT: ADMIN OPERATIONS CENTER ================= -->
       <div class="panel-box">
         <div class="card-header" style="margin-bottom: 8px; padding-bottom: 6px;">
-          <h3 class="card-title" style="color: #ef4444; font-size: 1.05rem;">
-            🚨 Admin Operations Center (EOC)
+          <h3 class="card-title" style="font-size: 1.05rem;">
+            Admin Operations Center (EOC)
           </h3>
           <span class="badge badge-danger">Broadcast Center</span>
         </div>
@@ -60,40 +60,40 @@
         <!-- Quick Scenarios -->
         <div style="display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;">
           <button class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" onclick="setScenario('hazmat')">
-            ☣️ Science Chem Spill
+            Chem Spill
           </button>
           <button class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" onclick="setScenario('wildfire')">
-            🔥 North Wildfire
+            Wildfire
           </button>
           <button class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" onclick="setScenario('earthquake')">
-            🏚️ Library Earthquake
+            Earthquake
           </button>
           <button class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" onclick="setScenario('flood')">
-            🌧️ Stadium Flood
+            Flash Flood
           </button>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
           <div>
-            <label style="font-size: 0.72rem; color: #9ca3af; font-weight: 700;">EMERGENCY CATEGORY</label>
+            <label style="font-size: 0.72rem; color: #666666; font-weight: 700;">EMERGENCY CATEGORY</label>
             <select id="split-admin-type" class="form-control" style="padding: 5px 8px; font-size: 0.8rem; width: 100%;">
-              <option value="Hazardous Materials">☣️ Hazardous Materials</option>
-              <option value="Wildfire">🔥 Wildfire</option>
-              <option value="Earthquake">🏚️ Earthquake</option>
-              <option value="Tsunami">🌊 Tsunami</option>
-              <option value="Extreme Heat">☀️ Extreme Heat</option>
-              <option value="Flood">🌧️ Flash Flood</option>
-              <option value="Thunderstorm">⚡ Thunderstorm</option>
-              <option value="High Wind">💨 High Wind</option>
-              <option value="Volcano">🌋 Volcano</option>
-              <option value="Air Quality">🌫️ Air Quality</option>
-              <option value="Radiation">☢️ Radiation</option>
-              <option value="Public Health Emergency">🏥 Public Health</option>
+              <option value="Hazardous Materials">Hazardous Materials</option>
+              <option value="Wildfire">Wildfire</option>
+              <option value="Earthquake">Earthquake</option>
+              <option value="Tsunami">Tsunami</option>
+              <option value="Extreme Heat">Extreme Heat</option>
+              <option value="Flood">Flash Flood</option>
+              <option value="Thunderstorm">Thunderstorm</option>
+              <option value="High Wind">High Wind</option>
+              <option value="Volcano">Volcano</option>
+              <option value="Air Quality">Air Quality</option>
+              <option value="Radiation">Radiation</option>
+              <option value="Public Health Emergency">Public Health</option>
             </select>
           </div>
           <div>
-            <label style="font-size: 0.72rem; color: #64748b; font-weight: 700;">RADIUS: <span id="split-radius-label">220m</span></label>
-            <input type="range" id="split-admin-radius" min="50" max="600" step="25" value="220" style="width: 100%; accent-color: #ef4444;" oninput="onSplitRadiusChange(this.value)">
+            <label style="font-size: 0.72rem; color: #666666; font-weight: 700;">RADIUS: <span id="split-radius-label">220m</span></label>
+            <input type="range" id="split-admin-radius" min="50" max="600" step="25" value="220" style="width: 100%; accent-color: #121212;" oninput="onSplitRadiusChange(this.value)">
           </div>
         </div>
 
@@ -101,76 +101,73 @@
           <input type="hidden" id="split-admin-lat" value="33.8800">
           <input type="hidden" id="split-admin-lng" value="-117.8860">
           
-          <button class="btn btn-danger" style="flex: 1; padding: 8px;" onclick="broadcastAlert()">
-            🚨 Dispatch Emergency Alert
+          <button class="btn btn-primary" style="flex: 1; padding: 8px;" onclick="broadcastAlert()">
+            Dispatch Emergency Alert
           </button>
           <button class="btn btn-secondary" style="padding: 8px 12px;" onclick="clearAlerts()">
             Clear Alerts
           </button>
           <button class="btn btn-secondary" style="padding: 8px 12px;" onclick="resetFleet()">
-            🔄 Reset Fleet
+            Reset Fleet
           </button>
         </div>
 
         <!-- Interactive Map Pinning Callout -->
-        <div style="background:#fff1f2; border:1px solid #fecdd3; padding:6px 10px; border-radius:6px; margin-bottom:8px; font-size:0.75rem; color:#9f1239; display:flex; justify-content:space-between; align-items:center;">
-          <span>📍 Click map or drag 🎯 pin to set epicenter</span>
-          <span class="badge badge-danger" style="font-size:0.68rem; padding:2px 6px;">MAP PINNING</span>
+        <div style="background:#fafafa; border:1px solid #eaeaea; padding:6px 10px; border-radius:6px; margin-bottom:8px; font-size:0.75rem; color:#121212; display:flex; justify-content:space-between; align-items:center;">
+          <span>📍 Click map to set epicenter. Double-click pin or map to remove.</span>
+          <span class="badge" style="font-size:0.68rem; padding:2px 6px;">MAP PINNING</span>
         </div>
 
         <div id="split-admin-map" class="map-container" style="height: 480px; border-radius: 8px;"></div>
       </div>
 
       <!-- ================= RIGHT: STUDENT PANEL ================= -->
-      <div class="panel-box" style="border-color: #3b82f6;">
+      <div class="panel-box">
         
         <!-- Student Switcher Bar -->
         <div style="margin-bottom: 8px;">
-          <div style="font-size: 0.76rem; font-weight: 700; color: #2563eb; text-transform: uppercase; margin-bottom: 4px;">
-            👥 Select Student (Jumps Position & Recalculates Safe Route):
+          <div style="font-size: 0.76rem; font-weight: 700; color: #121212; text-transform: uppercase; margin-bottom: 4px;">
+            Select Student:
           </div>
           <div class="student-bar" style="padding: 2px 0 6px 0;">
             <button class="student-chip active" data-email="daniel.wu@csu.fullerton.edu" onclick="window.safePathApp.switchActiveUser('daniel.wu@csu.fullerton.edu')">
-              🧑 Daniel
+              Daniel
             </button>
             <button class="student-chip" data-email="johan.liman@csu.fullerton.edu" onclick="window.safePathApp.switchActiveUser('johan.liman@csu.fullerton.edu')">
-              🧑 Johan
+              Johan
             </button>
             <button class="student-chip" data-email="jie.chen@csu.fullerton.edu" onclick="window.safePathApp.switchActiveUser('jie.chen@csu.fullerton.edu')">
-              🧑 Jie
+              Jie
             </button>
             <button class="student-chip" data-email="yucheng.chang@csu.fullerton.edu" onclick="window.safePathApp.switchActiveUser('yucheng.chang@csu.fullerton.edu')">
-              🧑 Yu
+              Yu
             </button>
             <button class="student-chip" data-email="siling.liu@csu.fullerton.edu" onclick="window.safePathApp.switchActiveUser('siling.liu@csu.fullerton.edu')">
-              🧑 Siling
+              Siling
             </button>
           </div>
         </div>
-
-        <!-- Notification Toast Area -->
-        <div id="user-alert-notification-area"></div>
 
         <!-- DIRECT NEAREST SAFE EVACUATION HAVEN CARD -->
         <div id="evacuation-display-box" class="evacuation-card" style="margin-bottom: 8px; padding: 12px 16px;">
           <!-- Dynamically populated with safe zone, distance, and time -->
         </div>
 
-        <!-- Student Map (Shows You + Other 4 Students + Green Safe Line) -->
+        <!-- Student Map -->
         <div id="split-user-map" class="map-container" style="height: 440px; border-radius: 8px;"></div>
 
         <!-- Quick Controls: Move to Safe Zone & Move All buttons -->
         <div class="quick-bar" style="margin-top: 8px; padding: 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
           <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-            <button id="btn-evacuate-move" class="btn btn-warning" style="font-size: 0.82rem; padding: 6px 12px; font-weight: 700;" onclick="window.safePathApp.toggleMoveToSafeZone()">
-              🏃 Move to Safe Zone
+            <button id="btn-evacuate-move" class="btn btn-primary" style="font-size: 0.82rem; padding: 6px 12px; font-weight: 700;" onclick="window.safePathApp.toggleMoveToSafeZone()">
+              Move to Safe Zone
             </button>
-            <button id="btn-evacuate-all" class="btn btn-primary" style="font-size: 0.82rem; padding: 6px 12px; font-weight: 700; background: #2563eb;" onclick="window.safePathApp.toggleMoveAllToSafeZones()">
-              👥 Move All (All Students)
+            <button id="btn-evacuate-all" class="btn btn-secondary" style="font-size: 0.82rem; padding: 6px 12px; font-weight: 700;" onclick="window.safePathApp.toggleMoveAllToSafeZones()">
+              Move All Students
             </button>
           </div>
 
-          <label style="cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 0.78rem; font-weight: 600; color: #9ca3af;">
+          <label style="cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 0.78rem; font-weight: 600; color: #666666;">
             <input type="checkbox" onchange="window.safePathApp.toggleAccessibility(this.checked)">
             ♿ Ramps Only
           </label>
@@ -184,98 +181,108 @@
 
   <script src="/app.js"></script>
   <script>
-    let splitAdminApp;
-    let splitUserApp;
+    let adminEngine;
+    let userEngine;
 
     document.addEventListener('DOMContentLoaded', () => {
-      splitAdminApp = new SafePathEngine({ role: 'admin', mapId: 'split-admin-map' });
-      splitUserApp = new SafePathEngine({
+      adminEngine = new SafePathEngine({ role: 'demo', mapId: 'split-admin-map' });
+      userEngine = new SafePathEngine({
         role: 'user',
         mapId: 'split-user-map',
-        email: 'daniel.wu@csu.fullerton.edu'
+        email: 'daniel.wu@csu.fullerton.edu',
+        name: 'Daniel',
+        lat: 33.8813,
+        lng: -117.8854
       });
 
-      window.safePathApp = splitUserApp;
-      window.splitAdminApp = splitAdminApp;
+      window.safePathApp = userEngine;
+      window.safePathAdmin = adminEngine;
+
+      adminEngine.refreshActiveAlerts();
+      userEngine.refreshActiveAlerts();
     });
+
+    function onSplitRadiusChange(val) {
+      document.getElementById('split-radius-label').textContent = val + 'm';
+      if (adminEngine) {
+        adminEngine.updateAdminPreviewRadius(parseFloat(val));
+      }
+    }
 
     async function broadcastAlert() {
       const type = document.getElementById('split-admin-type').value;
+      const radius = parseFloat(document.getElementById('split-admin-radius').value);
       const lat = parseFloat(document.getElementById('split-admin-lat').value);
       const lng = parseFloat(document.getElementById('split-admin-lng').value);
-      const radius = parseFloat(document.getElementById('split-admin-radius').value);
 
-      await splitAdminApp.broadcastAdminAlert({
-        type,
-        severity: 'CRITICAL',
-        latitude: lat,
-        longitude: lng,
-        radiusMeters: radius,
-        recommendedSafeZoneId: 'SZ1',
-        instructions: 'Evacuate hazard zone immediately via designated safe pathways.'
-      });
-
-      splitAdminApp.refreshActiveAlerts();
-      splitUserApp.refreshActiveAlerts();
+      try {
+        await adminEngine.broadcastAdminAlert({
+          type: type,
+          severity: 'CRITICAL',
+          latitude: lat,
+          longitude: lng,
+          radiusMeters: radius,
+          recommendedSafeZoneId: 'SZ1',
+          instructions: 'Evacuate hazard zone immediately via designated safe pathways.'
+        });
+        adminEngine.refreshActiveAlerts();
+        userEngine.refreshActiveAlerts();
+      } catch (e) {
+        alert('Failed: ' + e.message);
+      }
     }
 
     async function clearAlerts() {
       try {
-        await splitAdminApp.clearAllAdminAlerts();
-        splitAdminApp.refreshActiveAlerts();
-        splitUserApp.refreshActiveAlerts();
-      } catch (err) {
-        console.error('Failed to clear alerts:', err);
+        await adminEngine.clearAllAdminAlerts();
+        adminEngine.refreshActiveAlerts();
+        userEngine.refreshActiveAlerts();
+      } catch (e) {
+        alert('Failed to clear: ' + e.message);
       }
     }
 
     async function resetFleet() {
       try {
-        await splitAdminApp.resetFleetLocations();
-        await splitUserApp.syncFleetFromServer();
-        splitUserApp.renderAllStudentsOnMap();
-        splitUserApp.computeSafeRoute();
-        alert('✅ All 5 students reset to campus buildings.');
-      } catch (err) {
-        console.error('Failed to reset fleet:', err);
+        await adminEngine.resetFleetLocations();
+        adminEngine.loadAdminFleet();
+        userEngine.refreshActiveAlerts();
+      } catch (e) {
+        alert('Failed: ' + e.message);
       }
     }
 
-    function onSplitRadiusChange(val) {
-      document.getElementById('split-radius-label').textContent = val + 'm';
-      if (splitAdminApp) {
-        splitAdminApp.updateAdminPreviewRadius(parseFloat(val));
-      }
-    }
+    function setScenario(sc) {
+      const typeSelect = document.getElementById('split-admin-type');
+      const radSlider = document.getElementById('split-admin-radius');
+      const latInput = document.getElementById('split-admin-lat');
+      const lngInput = document.getElementById('split-admin-lng');
 
-    function setScenario(key) {
-      if (key === 'hazmat') {
-        document.getElementById('split-admin-type').value = 'Hazardous Materials';
-        document.getElementById('split-admin-lat').value = '33.8800';
-        document.getElementById('split-admin-lng').value = '-117.8860';
-        document.getElementById('split-admin-radius').value = '180';
-      } else if (key === 'wildfire') {
-        document.getElementById('split-admin-type').value = 'Wildfire';
-        document.getElementById('split-admin-lat').value = '33.8875';
-        document.getElementById('split-admin-lng').value = '-117.8845';
-        document.getElementById('split-admin-radius').value = '200';
-      } else if (key === 'earthquake') {
-        document.getElementById('split-admin-type').value = 'Earthquake';
-        document.getElementById('split-admin-lat').value = '33.8813';
-        document.getElementById('split-admin-lng').value = '-117.8854';
-        document.getElementById('split-admin-radius').value = '200';
-      } else if (key === 'flood') {
-        document.getElementById('split-admin-type').value = 'Flood';
-        document.getElementById('split-admin-lat').value = '33.8845';
-        document.getElementById('split-admin-lng').value = '-117.8890';
-        document.getElementById('split-admin-radius').value = '180';
+      if (sc === 'hazmat') {
+        typeSelect.value = 'Hazardous Materials';
+        radSlider.value = 180;
+        latInput.value = 33.8800;
+        lngInput.value = -117.8860;
+      } else if (sc === 'wildfire') {
+        typeSelect.value = 'Wildfire';
+        radSlider.value = 220;
+        latInput.value = 33.8875;
+        lngInput.value = -117.8845;
+      } else if (sc === 'earthquake') {
+        typeSelect.value = 'Earthquake';
+        radSlider.value = 200;
+        latInput.value = 33.8813;
+        lngInput.value = -117.8854;
+      } else if (sc === 'flood') {
+        typeSelect.value = 'Flood';
+        radSlider.value = 180;
+        latInput.value = 33.8845;
+        lngInput.value = -117.8890;
       }
-      const lat = parseFloat(document.getElementById('split-admin-lat').value);
-      const lng = parseFloat(document.getElementById('split-admin-lng').value);
-      const rad = parseFloat(document.getElementById('split-admin-radius').value);
-      document.getElementById('split-radius-label').textContent = rad + 'm';
-      if (splitAdminApp) {
-        splitAdminApp.setAdminPin(lat, lng, rad);
+
+      onSplitRadiusChange(radSlider.value);
+      if (adminEngine) {
+        adminEngine.setAdminPin(parseFloat(latInput.value), parseFloat(lngInput.value), parseFloat(radSlider.value));
       }
     }
   </script>
