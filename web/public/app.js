@@ -1461,11 +1461,69 @@ class SafePathEngine {
               <td>${timeDisplay}</td>
               <td>${u.batteryLevel}%</td>
               <td>${u.networkState}</td>
+              <td style="text-align: center;">
+                <button type="button" class="btn btn-secondary" title="Remove user ${u.name}" onclick="window.deleteFleetUser('${u.email}')" style="padding: 4px 8px; font-size: 0.95rem; line-height: 1; border-radius: 4px; border: 1px solid #cccccc; background: #ffffff; cursor: pointer; transition: all 0.15s ease;" onmouseover="this.style.background='#fee2e2'; this.style.borderColor='#dc2626';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#cccccc';">
+                  🗑️
+                </button>
+              </td>
             </tr>
           `;
         }).join('');
       }
     } catch (e) {}
+  }
+
+  async deleteUser(email) {
+    if (!confirm(`Are you sure you want to remove user "${email}" from the fleet?`)) {
+      return;
+    }
+    try {
+      const res = await fetch('/api/users/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      if (!res.ok) {
+        throw new Error('Failed to delete user');
+      }
+
+      const emailAliases = {
+        'daniel.wu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
+        'd.wu@csu.fullerton.edu': 'daniel.wu@csu.fullerton.edu',
+        'johan.liman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
+        'johaliman@csu.fullerton.edu': 'johan.liman@csu.fullerton.edu',
+        'jie.chen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
+        'jchen102951@csu.fullerton.edu': 'jie.chen@csu.fullerton.edu',
+        'yu.chang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
+        'yu-cheng.chang@csu.fullerton.edu': 'yu.chang@csu.fullerton.edu',
+        'siling313@csu.fullerton.edu': 'siling.liu@csu.fullerton.edu',
+        'siling.liu@csu.fullerton.edu': 'siling313@csu.fullerton.edu'
+      };
+
+      const alias = emailAliases[email];
+
+      // Remove from local students list
+      this.students = this.students.filter(s => s.email !== email && s.email !== alias);
+
+      // Remove student marker from map if exists
+      if (this.otherStudentMarkers) {
+        if (this.otherStudentMarkers.has(email)) {
+          this.map.removeLayer(this.otherStudentMarkers.get(email));
+          this.otherStudentMarkers.delete(email);
+        }
+        if (alias && this.otherStudentMarkers.has(alias)) {
+          this.map.removeLayer(this.otherStudentMarkers.get(alias));
+          this.otherStudentMarkers.delete(alias);
+        }
+      }
+
+      this.renderAllStudentsOnMap();
+      if (this.role === 'admin' || this.role === 'demo') {
+        await this.loadAdminFleet();
+      }
+    } catch (e) {
+      alert('Error removing user: ' + e.message);
+    }
   }
 
   async resetFleetLocations() {
@@ -2029,3 +2087,11 @@ class SafePathEngine {
 }
 
 window.SafePathEngine = SafePathEngine;
+
+window.deleteFleetUser = function(email) {
+  if (window.safePathApp && typeof window.safePathApp.deleteUser === 'function') {
+    window.safePathApp.deleteUser(email);
+  } else if (window.safePathAdmin && typeof window.safePathAdmin.deleteUser === 'function') {
+    window.safePathAdmin.deleteUser(email);
+  }
+};

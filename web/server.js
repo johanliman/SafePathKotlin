@@ -644,6 +644,19 @@ const server = http.createServer(async (req, res) => {
       'siling.liu@csu.fullerton.edu': { lat: 33.8835, lng: -117.8870, name: 'Siling' },
       'siling313@csu.fullerton.edu': { lat: 33.8835, lng: -117.8870, name: 'Siling' }
     };
+    const defaultStudents = [
+      { email: "johaliman@csu.fullerton.edu", name: "Johan", lat: 33.8802, lng: -117.8858 },
+      { email: "d.wu@csu.fullerton.edu", name: "Daniel", lat: 33.8813, lng: -117.8854 },
+      { email: "yu-cheng.chang@csu.fullerton.edu", name: "Yu", lat: 33.8820, lng: -117.8885 },
+      { email: "jchen102951@csu.fullerton.edu", name: "Jie", lat: 33.8829, lng: -117.8828 },
+      { email: "siling313@csu.fullerton.edu", name: "Siling", lat: 33.8835, lng: -117.8870 }
+    ];
+    for (const ds of defaultStudents) {
+      if (!registeredUsers.has(ds.email)) {
+        seedUser(ds.email, "studentpass", ds.name, "Student", ds.lat, ds.lng);
+      }
+    }
+
     for (const [email, user] of registeredUsers.entries()) {
       const init = initialCoords[email];
       if (init) {
@@ -687,6 +700,52 @@ const server = http.createServer(async (req, res) => {
       totalUsers: list.length,
       users: list
     }));
+    return;
+  }
+
+  // 7b. DELETE /api/users (Delete/remove student user)
+  if ((method === 'DELETE' && (pathname === '/api/users' || pathname.startsWith('/api/users/'))) ||
+      (method === 'POST' && pathname === '/api/users/delete')) {
+    try {
+      let emailToDelete = '';
+      if (pathname.startsWith('/api/users/')) {
+        emailToDelete = decodeURIComponent(pathname.substring('/api/users/'.length)).trim().toLowerCase();
+      }
+      if (!emailToDelete) {
+        const data = await parseBody(req);
+        emailToDelete = (data.email || '').trim().toLowerCase();
+      }
+      if (!emailToDelete) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Email is required to delete user' }));
+        return;
+      }
+
+      const emailAliases = {
+        'daniel.wu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
+        'd.wu@csu.fullerton.edu': 'daniel.wu@csu.fullerton.edu',
+        'johan.liman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
+        'johaliman@csu.fullerton.edu': 'johan.liman@csu.fullerton.edu',
+        'jie.chen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
+        'jchen102951@csu.fullerton.edu': 'jie.chen@csu.fullerton.edu',
+        'yu.chang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
+        'yu-cheng.chang@csu.fullerton.edu': 'yu.chang@csu.fullerton.edu',
+        'siling313@csu.fullerton.edu': 'siling.liu@csu.fullerton.edu',
+        'siling.liu@csu.fullerton.edu': 'siling313@csu.fullerton.edu'
+      };
+
+      const deleted = registeredUsers.delete(emailToDelete);
+      const alias = emailAliases[emailToDelete];
+      if (alias) registeredUsers.delete(alias);
+
+      broadcastSSE('USER_DELETED', { email: emailToDelete });
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, message: `User ${emailToDelete} deleted`, deleted }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
     return;
   }
 
