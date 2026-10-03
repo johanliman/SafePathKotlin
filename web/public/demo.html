@@ -130,19 +130,19 @@
             Select Student:
           </div>
           <div class="student-bar" style="padding: 2px 0 6px 0;">
-            <button class="student-chip active" data-email="daniel.wu@csu.fullerton.edu" onclick="window.safePathApp.switchActiveUser('daniel.wu@csu.fullerton.edu')">
+            <button class="student-chip active" data-email="d.wu@csu.fullerton.edu" onclick="switchStudentInDemo('d.wu@csu.fullerton.edu')">
               Daniel
             </button>
-            <button class="student-chip" data-email="johan.liman@csu.fullerton.edu" onclick="window.safePathApp.switchActiveUser('johan.liman@csu.fullerton.edu')">
+            <button class="student-chip" data-email="johaliman@csu.fullerton.edu" onclick="switchStudentInDemo('johaliman@csu.fullerton.edu')">
               Johan
             </button>
-            <button class="student-chip" data-email="jie.chen@csu.fullerton.edu" onclick="window.safePathApp.switchActiveUser('jie.chen@csu.fullerton.edu')">
+            <button class="student-chip" data-email="jchen102951@csu.fullerton.edu" onclick="switchStudentInDemo('jchen102951@csu.fullerton.edu')">
               Jie
             </button>
-            <button class="student-chip" data-email="yucheng.chang@csu.fullerton.edu" onclick="window.safePathApp.switchActiveUser('yucheng.chang@csu.fullerton.edu')">
+            <button class="student-chip" data-email="yu-cheng.chang@csu.fullerton.edu" onclick="switchStudentInDemo('yu-cheng.chang@csu.fullerton.edu')">
               Yu
             </button>
-            <button class="student-chip" data-email="siling.liu@csu.fullerton.edu" onclick="window.safePathApp.switchActiveUser('siling.liu@csu.fullerton.edu')">
+            <button class="student-chip" data-email="siling313@csu.fullerton.edu" onclick="switchStudentInDemo('siling313@csu.fullerton.edu')">
               Siling
             </button>
           </div>
@@ -153,24 +153,17 @@
           <!-- Dynamically populated with safe zone, distance, and time -->
         </div>
 
-        <!-- Student Map -->
-        <div id="split-user-map" class="map-container" style="height: 440px; border-radius: 8px;"></div>
+        <!-- Student Map (Same height as Admin Map) -->
+        <div id="split-user-map" class="map-container" style="height: 480px; border-radius: 8px;"></div>
 
         <!-- Quick Controls: Move to Safe Zone & Move All buttons -->
-        <div class="quick-bar" style="margin-top: 8px; padding: 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
-          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-            <button id="btn-evacuate-move" class="btn btn-primary" style="font-size: 0.82rem; padding: 6px 12px; font-weight: 700;" onclick="window.safePathApp.toggleMoveToSafeZone()">
-              Move to Safe Zone
-            </button>
-            <button id="btn-evacuate-all" class="btn btn-secondary" style="font-size: 0.82rem; padding: 6px 12px; font-weight: 700;" onclick="window.safePathApp.toggleMoveAllToSafeZones()">
-              Move All Students
-            </button>
-          </div>
-
-          <label style="cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 0.78rem; font-weight: 600; color: #666666;">
-            <input type="checkbox" onchange="window.safePathApp.toggleAccessibility(this.checked)">
-            ♿ Ramps Only
-          </label>
+        <div class="quick-bar" style="margin-top: 8px; padding: 0; display: flex; justify-content: flex-start; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <button id="btn-evacuate-move" class="btn btn-primary" style="font-size: 0.82rem; padding: 7px 14px; font-weight: 700;" onclick="window.safePathApp.toggleMoveToSafeZone()">
+            Move to Safe Zone
+          </button>
+          <button id="btn-evacuate-all" class="btn btn-secondary" style="font-size: 0.82rem; padding: 7px 14px; font-weight: 700;" onclick="window.safePathApp.toggleMoveAllToSafeZones()">
+            Move All Students
+          </button>
         </div>
 
       </div>
@@ -184,12 +177,22 @@
     let adminEngine;
     let userEngine;
 
+    function switchStudentInDemo(email) {
+      if (userEngine) {
+        userEngine.switchActiveUser(email);
+      }
+      if (adminEngine && userEngine) {
+        adminEngine.students = JSON.parse(JSON.stringify(userEngine.students));
+        adminEngine.renderAllStudentsOnMap();
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
-      adminEngine = new SafePathEngine({ role: 'demo', mapId: 'split-admin-map' });
+      adminEngine = new SafePathEngine({ role: 'admin', mapId: 'split-admin-map' });
       userEngine = new SafePathEngine({
         role: 'user',
         mapId: 'split-user-map',
-        email: 'daniel.wu@csu.fullerton.edu',
+        email: 'd.wu@csu.fullerton.edu',
         name: 'Daniel',
         lat: 33.8813,
         lng: -117.8854
@@ -197,6 +200,9 @@
 
       window.safePathApp = userEngine;
       window.safePathAdmin = adminEngine;
+
+      // Sync student lists between both engines
+      adminEngine.students = JSON.parse(JSON.stringify(userEngine.students));
 
       adminEngine.refreshActiveAlerts();
       userEngine.refreshActiveAlerts();
@@ -245,8 +251,13 @@
     async function resetFleet() {
       try {
         await adminEngine.resetFleetLocations();
+        await userEngine.resetFleetLocations();
         adminEngine.loadAdminFleet();
-        userEngine.refreshActiveAlerts();
+        userEngine.loadAdminFleet();
+        adminEngine.students = JSON.parse(JSON.stringify(userEngine.students));
+        adminEngine.renderAllStudentsOnMap();
+        userEngine.renderAllStudentsOnMap();
+        userEngine.computeSafeRoute();
       } catch (e) {
         alert('Failed: ' + e.message);
       }

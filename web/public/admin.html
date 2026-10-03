@@ -102,91 +102,54 @@
 
         <!-- Quick Emergency Scenarios (All 12 Types) -->
         <div class="form-group" style="margin-bottom: 16px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <label class="form-label" style="margin-bottom:0; font-weight:700;">Quick Emergency Scenarios (12 Types)</label>
-            <span class="badge" style="font-size:0.68rem;">1-Click Setup</span>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-height: 230px; overflow-y: auto; padding-right: 3px;">
+          <label class="form-label" style="font-weight:700; margin-bottom:8px;">Emergency Scenarios</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-height: 250px; overflow-y: auto; padding-right: 3px;">
             <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Hazardous Materials')">
               <span>☣️ HazMat Spill</span>
-              <span class="badge badge-danger" style="font-size:0.62rem; padding:1px 5px;">CRITICAL</span>
             </button>
             <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Wildfire')">
               <span>🔥 Wildfire</span>
-              <span class="badge badge-danger" style="font-size:0.62rem; padding:1px 5px;">CRITICAL</span>
             </button>
             <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Earthquake')">
               <span>🏚️ Earthquake</span>
-              <span class="badge badge-danger" style="font-size:0.62rem; padding:1px 5px;">CRITICAL</span>
             </button>
             <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Tsunami')">
               <span>🌊 Tsunami</span>
-              <span class="badge badge-danger" style="font-size:0.62rem; padding:1px 5px;">CRITICAL</span>
             </button>
             <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Volcano')">
               <span>🌋 Volcano</span>
-              <span class="badge badge-danger" style="font-size:0.62rem; padding:1px 5px;">CRITICAL</span>
             </button>
             <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Radiation')">
               <span>☢️ Radiation</span>
-              <span class="badge badge-danger" style="font-size:0.62rem; padding:1px 5px;">CRITICAL</span>
             </button>
             <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Flood')">
               <span>🌧️ Flash Flood</span>
-              <span class="badge" style="font-size:0.62rem; padding:1px 5px; border-color:#888;">WARNING</span>
             </button>
             <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Thunderstorm')">
               <span>⚡ Thunderstorm</span>
-              <span class="badge" style="font-size:0.62rem; padding:1px 5px; border-color:#888;">WARNING</span>
             </button>
             <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('High Wind')">
               <span>💨 High Wind</span>
-              <span class="badge" style="font-size:0.62rem; padding:1px 5px; border-color:#888;">WARNING</span>
             </button>
             <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Public Health Emergency')">
               <span>🏥 Health Alert</span>
-              <span class="badge" style="font-size:0.62rem; padding:1px 5px; border-color:#888;">WARNING</span>
             </button>
             <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Extreme Heat')">
               <span>☀️ Extreme Heat</span>
-              <span class="badge" style="font-size:0.62rem; padding:1px 5px; color:#666;">ADVISORY</span>
             </button>
             <button type="button" class="btn btn-secondary scenario-chip" onclick="loadScenario('Air Quality')">
               <span>🌫️ Air Quality</span>
-              <span class="badge" style="font-size:0.62rem; padding:1px 5px; color:#666;">ADVISORY</span>
             </button>
           </div>
         </div>
 
         <form id="admin-alert-form">
-          
-          <!-- Emergency Type Selector (All 12 types) -->
-          <div class="form-group">
-            <label class="form-label">Emergency Category (12 Types)</label>
-            <select id="admin-alert-type" class="form-control" onchange="onAlertTypeChange()">
-              <option value="Hazardous Materials">Hazardous Materials (HazMat)</option>
-              <option value="Wildfire">Wildfire Evacuation</option>
-              <option value="Earthquake">Earthquake</option>
-              <option value="Tsunami">Tsunami Warning</option>
-              <option value="Extreme Heat">Extreme Heat Advisory</option>
-              <option value="Flood">Flash Flood Warning</option>
-              <option value="Thunderstorm">Severe Thunderstorm / Lightning</option>
-              <option value="High Wind">High Wind Hazard</option>
-              <option value="Volcano">Volcanic Ash / Pyroclastic Alert</option>
-              <option value="Air Quality">Severe Air Quality Emergency</option>
-              <option value="Radiation">Radiation Threat</option>
-              <option value="Public Health Emergency">Public Health Emergency</option>
-            </select>
-          </div>
+          <input type="hidden" id="admin-alert-type" value="Hazardous Materials">
+          <input type="hidden" id="admin-severity" value="CRITICAL">
 
-          <!-- Severity Level -->
-          <div class="form-group">
-            <label class="form-label">Alert Severity Level</label>
-            <select id="admin-severity" class="form-control">
-              <option value="CRITICAL">CRITICAL (Immediate Evacuation)</option>
-              <option value="WARNING">WARNING (Take Protective Action)</option>
-              <option value="ADVISORY">ADVISORY (Informational / Caution)</option>
-            </select>
+          <!-- Selected Scenario Confirmation Badge -->
+          <div style="background:#fafafa; border:1px solid #eaeaea; border-radius:6px; padding:8px 12px; margin-bottom:12px; font-size:0.82rem; color:#666666;">
+            Active Selection: <strong id="admin-selected-scenario-text" style="color:#121212;">Hazardous Materials</strong>
           </div>
 
           <!-- Coordinates: Lat & Long -->
@@ -416,6 +379,17 @@
 
       document.getElementById('admin-alert-type').value = type;
       document.getElementById('admin-severity').value = preset.severity || 'CRITICAL';
+      const selText = document.getElementById('admin-selected-scenario-text');
+      if (selText) selText.textContent = type;
+
+      document.querySelectorAll('.scenario-chip').forEach(btn => {
+        if (btn.textContent.includes(type) || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(type))) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
       document.getElementById('admin-lat').value = preset.lat.toFixed(4);
       document.getElementById('admin-lng').value = preset.lng.toFixed(4);
       document.getElementById('admin-radius').value = preset.radius;

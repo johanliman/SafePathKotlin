@@ -492,7 +492,20 @@ class SafePathEngine {
 
   // --- SWITCH STUDENT: JUMPS POSITION ON MAP & RE-EVALUATES ROUTE ---
   switchActiveUser(email) {
-    const student = this.students.find(s => s.email === email);
+    const emailAliases = {
+      'daniel.wu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
+      'johan.liman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
+      'jie.chen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
+      'yucheng.chang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
+      'siling.liu@csu.fullerton.edu': 'siling313@csu.fullerton.edu'
+    };
+    const targetEmail = emailAliases[email] || email;
+    const student = this.students.find(s => 
+      s.email === targetEmail || 
+      s.email === email ||
+      (s.name && s.name.toLowerCase() === (email || '').toLowerCase()) ||
+      (s.email && s.email.toLowerCase().includes((email || '').toLowerCase()))
+    );
     if (!student) return;
 
     // Save previous active student position
@@ -516,7 +529,9 @@ class SafePathEngine {
 
     // Update active button styling
     document.querySelectorAll('.student-chip').forEach(btn => {
-      if (btn.dataset.email === student.email) {
+      const bEmail = btn.dataset.email;
+      const bTarget = emailAliases[bEmail] || bEmail;
+      if (bTarget === student.email || bEmail === student.email || btn.textContent.trim().toLowerCase() === student.name.toLowerCase()) {
         btn.classList.add('active');
       } else {
         btn.classList.remove('active');
@@ -526,6 +541,16 @@ class SafePathEngine {
     this.renderAllStudentsOnMap();
     this.computeSafeRoute();
     this.syncLocationToServer(this.userLat, this.userLng);
+
+    // Live sync for split demo mode: update admin engine's student coordinates
+    if (window.safePathAdmin && window.safePathAdmin !== this && window.safePathAdmin.students) {
+      const adminSt = window.safePathAdmin.students.find(s => s.email === student.email || s.name.toLowerCase() === student.name.toLowerCase());
+      if (adminSt) {
+        adminSt.lat = student.lat;
+        adminSt.lng = student.lng;
+      }
+      window.safePathAdmin.renderAllStudentsOnMap();
+    }
   }
 
   // --- LOCATION CHANGING ---
@@ -544,6 +569,17 @@ class SafePathEngine {
 
     if (this.userMarker) {
       this.userMarker.setLatLng([this.userLat, this.userLng]);
+    }
+
+    // Real-time synchronization for Split Demo mode
+    if (window.safePathAdmin && window.safePathAdmin !== this && window.safePathAdmin.students) {
+      const adminSt = window.safePathAdmin.students.find(s => s.email === this.userEmail);
+      if (adminSt) {
+        adminSt.lat = lat;
+        adminSt.lng = lng;
+        if (dist !== undefined) adminSt.distanceMeters = dist;
+      }
+      window.safePathAdmin.renderAllStudentsOnMap();
     }
 
     this.renderAllStudentsOnMap();
@@ -1002,16 +1038,16 @@ class SafePathEngine {
 
       if (container) {
         container.className = 'evacuation-card';
-        container.style.border = '1px solid #374151';
-        container.style.background = 'var(--bg-surface)';
+        container.style.border = '1px solid #eaeaea';
+        container.style.background = '#ffffff';
         container.style.boxShadow = 'none';
         container.innerHTML = `
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <span style="font-size: 1.5rem;">🟢</span>
               <div>
-                <div style="font-size: 1.05rem; font-weight: 800; color: #fff;">Campus Status: All Clear</div>
-                <div style="font-size: 0.82rem; color: #9ca3af;">No active emergencies reported. You are in a safe zone.</div>
+                <div style="font-size: 1.05rem; font-weight: 800; color: #121212;">Campus Status: All Clear</div>
+                <div style="font-size: 0.85rem; color: #666666;">No active emergencies reported. You are in a safe zone.</div>
               </div>
             </div>
             <span class="badge badge-success" style="font-size: 0.85rem; padding: 5px 12px;">🟢 NORMAL</span>
