@@ -45,6 +45,7 @@
         <span>👤</span> <span>Campus Admin (admin@safepath.com)</span>
       </div>
       <a href="/admin.html" class="nav-btn active">Admin Panel</a>
+      <a href="/demo.html" class="nav-btn">Split Demo</a>
       <a href="/user.html" class="nav-btn">Student Panel →</a>
       <button onclick="handleAdminLogout()" class="nav-btn" style="cursor:pointer;">
         Sign Out
@@ -65,9 +66,14 @@
           Campus Dispatcher View: Click on the map to set epicenter. Double-click pin or map to remove pin. Broadcast live alerts to student devices.
         </div>
       </div>
-      <a href="/user.html" class="btn btn-secondary">
-        Switch to Student Panel →
-      </a>
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <a href="/demo.html" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px;">
+          <span>◫</span> Split Demo View
+        </a>
+        <a href="/user.html" class="btn btn-secondary">
+          Switch to Student Panel →
+        </a>
+      </div>
     </div>
     
     <!-- Top Telemetry Row -->
