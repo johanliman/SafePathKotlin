@@ -64,6 +64,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var switchAccessibility: SwitchCompat
     private lateinit var btnMoveToSafeZone: Button
     private lateinit var btnMoveAllToSafeZone: Button
+    private lateinit var bottomControlCard: View
 
     // Google Maps Turn-by-Turn Navigation Overlay elements
     private lateinit var gmapsNavOverlay: View
@@ -218,9 +219,11 @@ class MainActivity : AppCompatActivity() {
         setupWebView()
         setupAdminWebView()
 
+        switchAccessibility.visibility = View.GONE
+
         if (loggedRole.equals("Admin", ignoreCase = true)) {
             findViewById<View>(R.id.roleTabBar).visibility = View.GONE
-            findViewById<TextView>(R.id.tvAppName).text = "🛡️ SafePath Admin EOC"
+            findViewById<TextView>(R.id.tvAppName).text = "🛡️ SafePath Admin"
             selectTab(true)
         } else {
             findViewById<View>(R.id.roleTabBar).visibility = View.GONE
@@ -257,6 +260,7 @@ class MainActivity : AppCompatActivity() {
         switchAccessibility = findViewById(R.id.switchAccessibility)
         btnMoveToSafeZone = findViewById(R.id.btnMoveToSafeZone)
         btnMoveAllToSafeZone = findViewById(R.id.btnMoveAllToSafeZone)
+        bottomControlCard = findViewById(R.id.bottomControlCard)
 
         // Google Maps Turn-by-Turn Navigation HUD bindings
         gmapsNavOverlay = findViewById(R.id.gmapsNavOverlay)
@@ -505,9 +509,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 evaluateHazardAndCalculateRoute(switchAccessibility.isChecked)
                 refreshMapDisplay()
-                if (isAdminMapLoaded) {
-                    adminMapWebView.evaluateJavascript("clearHazard();", null)
-                }
+                refreshAdminMapDisplay()
                 updateAdminFleetDisplay()
                 Toast.makeText(this@MainActivity, "✅ All alerts cleared. Campus is safe!", Toast.LENGTH_SHORT).show()
             }
@@ -700,9 +702,13 @@ class MainActivity : AppCompatActivity() {
     private fun refreshAdminMapDisplay() {
         if (!isAdminMapLoaded) return
         if (activeAlerts.isEmpty()) {
+            adminMapWebView.evaluateJavascript("clearHazard();", null)
             adminMapWebView.evaluateJavascript("setEpicenter($adminLat, $adminLng, $adminRadius);", null)
         } else {
+            val alert = activeAlerts[0]
+            val safeTitle = alert.title.replace("'", "\\'")
             adminMapWebView.evaluateJavascript("clearEpicenterPin();", null)
+            adminMapWebView.evaluateJavascript("setHazard(${alert.latitude}, ${alert.longitude}, ${alert.radiusMeters}, '$safeTitle');", null)
         }
 
         val fleet = students.map {
@@ -755,13 +761,17 @@ class MainActivity : AppCompatActivity() {
         val tvGmapsHavenName = findViewById<TextView>(R.id.tvGmapsHavenName)
         val tvGmapsItinerarySteps = findViewById<TextView>(R.id.tvGmapsItinerarySteps)
 
+        layoutEmergencyBanner.visibility = View.GONE
+        findViewById<View?>(R.id.cardGmapsNavigation)?.visibility = View.GONE
+        tvSafeRouteInfo.visibility = View.GONE
+        btnMoveAllToSafeZone.visibility = View.GONE
+
         if (active.inHazard && activeAlert != null) {
             tvSafetyBadge.text = "🚨 IN HAZARD"
             tvSafetyBadge.setTextColor(Color.parseColor("#DC2626"))
             tvSafetyBadge.setBackgroundResource(R.drawable.badge_hazard)
-            layoutEmergencyBanner.visibility = View.VISIBLE
-            tvEmergencyTitle.text = "${activeAlert.type.icon} CRITICAL: ${activeAlert.type.displayName}"
-            tvEmergencyDirectives.text = activeAlert.instructions
+            bottomControlCard.visibility = View.VISIBLE
+            btnMoveToSafeZone.visibility = View.VISIBLE
 
             val route = pathfinder.generateSafeRoute(active.lat, active.lng, activeAlerts, isAccessible)
             if (route != null) {
@@ -774,52 +784,18 @@ class MainActivity : AppCompatActivity() {
                     mapWebView.evaluateJavascript("setSafeRoute($coordsJson);", null)
                 }
 
-                val totalD = route.totalDistanceMeters.toInt()
-                val estM = route.estimatedTimeMinutes
-                val haven = route.destinationSafeZone.name
-
-                tvSafeRouteInfo.text = "🛡️ $haven\nDistance: ${totalD}m | Est. Time: ~${estM} min"
-                tvSafeRouteInfo.setTextColor(Color.parseColor("#DC2626"))
-
-                // Update Google Maps HUD
-                barGmapsManeuver?.setBackgroundColor(Color.parseColor("#DC2626"))
-                tvGmapsManeuverIcon?.text = "🏃"
-                tvGmapsPrimaryInstruction?.text = "EVACUATE: Head toward $haven"
-                tvGmapsSecondaryInstruction?.text = "Active ${activeAlert.type.displayName} hazard. Follow green route."
-                tvGmapsStatusPill?.text = "🚨 EVACUATE"
-                tvGmapsEta?.text = "⏱️ ~$estM min"
-                tvGmapsEta?.setTextColor(Color.parseColor("#DC2626"))
-                tvGmapsDistance?.text = " (${totalD} m)"
-                tvGmapsHavenName?.text = "🛡️ $haven"
-                tvGmapsItinerarySteps?.text = "1. Depart current coordinates immediately away from hazard\n" +
-                        "2. Walk ~${(totalD * 0.4).toInt()}m along CSUF Pedestrian Walkway\n" +
-                        "3. Turn slight right toward designated safe perimeter (~${(totalD * 0.6).toInt()}m)\n" +
-                        "4. Arrive at Safe Haven: $haven (Assembly & Triage)"
                 btnMoveToSafeZone.text = if (moveRunnable != null) "⏹️ Stop Moving" else "🏃 Move to Safe Zone"
             }
         } else {
             tvSafetyBadge.text = "SAFE"
             tvSafetyBadge.setTextColor(Color.parseColor("#16A34A"))
             tvSafetyBadge.setBackgroundResource(R.drawable.badge_safe)
-            layoutEmergencyBanner.visibility = View.GONE
-            tvSafeRouteInfo.text = "🟢 Campus Status: All Clear (Safe Zone)"
-            tvSafeRouteInfo.setTextColor(Color.parseColor("#16A34A"))
-            btnMoveToSafeZone.text = "🟢 Safe (Outside Hazard)"
+            bottomControlCard.visibility = View.GONE
+            btnMoveToSafeZone.visibility = View.GONE
+
             if (::mapWebView.isInitialized && isMapLoaded) {
                 mapWebView.evaluateJavascript("clearSafeRoute();", null)
             }
-
-            // Google Maps HUD Safe State
-            barGmapsManeuver?.setBackgroundColor(Color.parseColor("#15803D"))
-            tvGmapsManeuverIcon?.text = "🟢"
-            tvGmapsPrimaryInstruction?.text = "Campus Status: All Clear"
-            tvGmapsSecondaryInstruction?.text = "Pedestrian walkways operating normally. No active emergencies."
-            tvGmapsStatusPill?.text = "ALL CLEAR"
-            tvGmapsEta?.text = "⏱️ Safe"
-            tvGmapsEta?.setTextColor(Color.parseColor("#15803D"))
-            tvGmapsDistance?.text = " (Safe Zone)"
-            tvGmapsHavenName?.text = "🛡️ CSUF Safe Campus"
-            tvGmapsItinerarySteps?.text = "1. Current location is outside all hazard zones."
         }
 
         refreshMapDisplay()
@@ -945,6 +921,8 @@ class MainActivity : AppCompatActivity() {
                     mainHandler.postDelayed(this, 600L)
                 } else {
                     stopActiveNavigation()
+                    st.lat = route.destinationSafeZone.latitude
+                    st.lng = route.destinationSafeZone.longitude
                     st.distanceMeters = 0
                     st.estMinutes = 0
                     st.inHazard = false
@@ -1035,6 +1013,10 @@ class MainActivity : AppCompatActivity() {
                         syncLocationToServer(plan.student)
                     } else {
                         plan.done = true
+                        if (plan.steps.isNotEmpty()) {
+                            plan.student.lat = plan.steps.last().first
+                            plan.student.lng = plan.steps.last().second
+                        }
                         plan.student.distanceMeters = 0
                         plan.student.estMinutes = 0
                         plan.student.inHazard = false
@@ -1085,9 +1067,13 @@ class MainActivity : AppCompatActivity() {
                 try {
                     val alerts = apiClient.fetchActiveAlerts()
                     withContext(Dispatchers.Main) {
-                        activeAlerts.clear()
-                        activeAlerts.addAll(alerts)
-                        evaluateHazardAndCalculateRoute(switchAccessibility.isChecked)
+                        if (activeAlerts != alerts) {
+                            activeAlerts.clear()
+                            activeAlerts.addAll(alerts)
+                            evaluateHazardAndCalculateRoute(switchAccessibility.isChecked)
+                            refreshMapDisplay()
+                            refreshAdminMapDisplay()
+                        }
                     }
                 } catch (e: Exception) {}
                 kotlinx.coroutines.delay(2500L)
@@ -1137,6 +1123,10 @@ class MainActivity : AppCompatActivity() {
         safeZones.add(SafeZone("SZ2", "East Campus Safe Haven (West of Freeway)", "exit", 33.8830, -117.8840, 2000, listOf("Ambulance Bay", "Evacuation Shuttles"), true, "Safe haven west of CA-57"))
         safeZones.add(SafeZone("SZ3", "West Athletics Pavilion", "shelter", 33.8850, -117.8895, 1200, listOf("HEPA Filters"), true, "Shelter"))
         safeZones.add(SafeZone("SZ4", "South Gate Egress", "exit", 33.8785, -117.8850, 1000, listOf("Escort"), true, "South exit"))
+        safeZones.add(SafeZone("SZ5", "North Regional Perimeter Haven", "assembly", 33.8885, -117.8855, 3000, listOf("Medical", "Water"), true, "North regional safe haven"))
+        safeZones.add(SafeZone("SZ6", "West Regional Safe Center", "shelter", 33.8850, -117.8935, 3000, listOf("Shelter", "Water"), true, "West regional safe shelter"))
+        safeZones.add(SafeZone("SZ7", "South Regional Safe Center", "exit", 33.8745, -117.8850, 3000, listOf("Shuttle", "Escort"), true, "South regional safe exit"))
+        safeZones.add(SafeZone("SZ8", "Southwest Perimeter Assembly", "exit", 33.8770, -117.8910, 3000, listOf("Escort"), true, "Southwest perimeter assembly"))
 
         walkwayNodes.add(WalkwayNode("N1", 33.8813, -117.8854, "Library Plaza"))
         walkwayNodes.add(WalkwayNode("N2", 33.8800, -117.8860, "Science Concourse"))
@@ -1144,18 +1134,51 @@ class MainActivity : AppCompatActivity() {
         walkwayNodes.add(WalkwayNode("N4", 33.8820, -117.8852, "Central Spine Middle"))
         walkwayNodes.add(WalkwayNode("N5", 33.8835, -117.8853, "Central Spine North"))
         walkwayNodes.add(WalkwayNode("N6", 33.8842, -117.8855, "North Quad Lawn (SZ1)"))
-        walkwayNodes.add(WalkwayNode("N10", 33.8850, -117.8895, "West Pavilion Path"))
-        walkwayNodes.add(WalkwayNode("N13", 33.8830, -117.8840, "East Campus Path (West of Freeway)"))
-        walkwayNodes.add(WalkwayNode("N16", 33.8785, -117.8850, "South Gate Path"))
+        walkwayNodes.add(WalkwayNode("N7", 33.8820, -117.8870, "Student Union Walkway"))
+        walkwayNodes.add(WalkwayNode("N8", 33.8820, -117.8885, "TSU Courtyard"))
+        walkwayNodes.add(WalkwayNode("N9", 33.8835, -117.8870, "Health Center Promenade"))
+        walkwayNodes.add(WalkwayNode("N10", 33.8850, -117.8895, "West Stadium Pavilion (SZ3)"))
+        walkwayNodes.add(WalkwayNode("N11", 33.8829, -117.8840, "Engineering Access Walk"))
+        walkwayNodes.add(WalkwayNode("N12", 33.8829, -117.8835, "Engineering Quad"))
+        walkwayNodes.add(WalkwayNode("N13", 33.8830, -117.8840, "East Campus Safe Haven (SZ2)"))
+        walkwayNodes.add(WalkwayNode("N14", 33.8808, -117.8835, "Humanities Terrace"))
+        walkwayNodes.add(WalkwayNode("N15", 33.8795, -117.8840, "Police Center Lane"))
+        walkwayNodes.add(WalkwayNode("N16", 33.8785, -117.8850, "South Gate Egress (SZ4)"))
+        walkwayNodes.add(WalkwayNode("N17", 33.8860, -117.8850, "Housing North Connector"))
+        walkwayNodes.add(WalkwayNode("N18", 33.8865, -117.8845, "Dorms Main Entrance"))
+        walkwayNodes.add(WalkwayNode("N19", 33.8810, -117.8875, "Arts Walkway"))
+        walkwayNodes.add(WalkwayNode("N20", 33.8798, -117.8880, "Southwest Outer Walkway"))
 
         walkwayEdges.add(WalkwayEdge("N1", "N3", accessible = true, hasStairs = false))
         walkwayEdges.add(WalkwayEdge("N1", "N4", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N1", "N7", accessible = true, hasStairs = false))
         walkwayEdges.add(WalkwayEdge("N2", "N3", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N2", "N19", accessible = false, hasStairs = true))
+        walkwayEdges.add(WalkwayEdge("N2", "N15", accessible = true, hasStairs = false))
         walkwayEdges.add(WalkwayEdge("N3", "N4", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N3", "N14", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N3", "N15", accessible = true, hasStairs = false))
         walkwayEdges.add(WalkwayEdge("N4", "N5", accessible = true, hasStairs = false))
-        walkwayEdges.add(WalkwayEdge("N5", "N6", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N4", "N7", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N4", "N11", accessible = true, hasStairs = false))
         walkwayEdges.add(WalkwayEdge("N4", "N13", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N5", "N6", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N5", "N9", accessible = true, hasStairs = false))
         walkwayEdges.add(WalkwayEdge("N5", "N10", accessible = true, hasStairs = false))
-        walkwayEdges.add(WalkwayEdge("N3", "N16", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N5", "N17", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N6", "N17", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N7", "N8", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N7", "N9", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N8", "N10", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N8", "N19", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N9", "N10", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N11", "N12", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N12", "N13", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N14", "N12", accessible = false, hasStairs = true))
+        walkwayEdges.add(WalkwayEdge("N14", "N13", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N15", "N16", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N17", "N18", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N19", "N20", accessible = true, hasStairs = false))
+        walkwayEdges.add(WalkwayEdge("N20", "N16", accessible = true, hasStairs = false))
     }
 }

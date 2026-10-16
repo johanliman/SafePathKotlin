@@ -271,15 +271,15 @@ class LoginActivity : AppCompatActivity() {
                 capturedLng = loc.longitude
                 tvDetectedLocation.text = String.format("📍 Captured: %.4f, %.4f (Device GPS)", capturedLat, capturedLng)
             } else {
-                // Default CSUF center
+                // Default campus center
                 capturedLat = 33.8813
                 capturedLng = -117.8854
-                tvDetectedLocation.text = "📍 Captured: 33.8813, -117.8854 (CSUF Pollak Quad)"
+                tvDetectedLocation.text = "📍 Captured: 33.8813, -117.8854 (Pollak Quad)"
             }
         } catch (e: Exception) {
             capturedLat = 33.8813
             capturedLng = -117.8854
-            tvDetectedLocation.text = "📍 Captured: 33.8813, -117.8854 (CSUF Pollak Quad)"
+            tvDetectedLocation.text = "📍 Captured: 33.8813, -117.8854 (Pollak Quad)"
         }
     }
 

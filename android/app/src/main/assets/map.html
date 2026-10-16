@@ -75,6 +75,27 @@
       pointer-events: none;
       border: 1px solid #cccccc;
     }
+    .leaflet-control-zoom {
+      border: 1.5px solid #cbd5e1 !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+      border-radius: 8px !important;
+      overflow: hidden;
+      margin-top: 10px !important;
+      margin-left: 10px !important;
+    }
+    .leaflet-control-zoom a {
+      width: 36px !important;
+      height: 36px !important;
+      line-height: 36px !important;
+      font-size: 18px !important;
+      font-weight: 700 !important;
+      color: #1e293b !important;
+      background-color: #ffffff !important;
+    }
+    .leaflet-control-zoom a:hover, .leaflet-control-zoom a:active {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+    }
   </style>
 </head>
 <body>
@@ -83,7 +104,7 @@
     var map = L.map('map', {
       center: [33.8823, -117.8851],
       zoom: 16,
-      zoomControl: false
+      zoomControl: true
     });
 
     // Free OpenStreetMap Tile Layer - Zero API Keys Required
@@ -112,6 +133,7 @@
     var userMarker = null;
     var otherMarkers = {};
     var hazardCircle = null;
+    var hazardMarker = null;
     var routePolyline = null;
     var havenMarkers = {};
 
@@ -120,7 +142,11 @@
       { id: 'SZ1', name: 'North Quad Assembly (SZ1)', lat: 33.8842, lng: -117.8855 },
       { id: 'SZ2', name: 'East Campus Safe Haven (SZ2)', lat: 33.8830, lng: -117.8840 },
       { id: 'SZ3', name: 'West Athletics Pavilion (SZ3)', lat: 33.8850, lng: -117.8895 },
-      { id: 'SZ4', name: 'South Gate Egress (SZ4)', lat: 33.8785, lng: -117.8850 }
+      { id: 'SZ4', name: 'South Gate Egress (SZ4)', lat: 33.8785, lng: -117.8850 },
+      { id: 'SZ5', name: 'North Perimeter Haven (SZ5)', lat: 33.8885, lng: -117.8855 },
+      { id: 'SZ6', name: 'West Regional Safe Center (SZ6)', lat: 33.8850, lng: -117.8935 },
+      { id: 'SZ7', name: 'South Regional Safe Center (SZ7)', lat: 33.8745, lng: -117.8850 },
+      { id: 'SZ8', name: 'Southwest Perimeter Assembly (SZ8)', lat: 33.8770, lng: -117.8910 }
     ];
 
     safeHavens.forEach(function(h) {
@@ -227,9 +253,7 @@
     }
 
     function setHazard(lat, lng, radiusMeters, name) {
-      if (hazardCircle) {
-        map.removeLayer(hazardCircle);
-      }
+      clearHazard();
       hazardCircle = L.circle([lat, lng], {
         radius: radiusMeters,
         color: '#dc2626',
@@ -239,12 +263,31 @@
         weight: 2.5
       }).addTo(map);
       hazardCircle.bindPopup('<strong>HAZARD ZONE: ' + name + '</strong><br/>Radius: ' + radiusMeters + 'm');
+
+      var hazardSignHtml = '<div style="position:relative;">' +
+                             '<div style="background:#dc2626; width:34px; height:34px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 2px 10px rgba(220,38,38,0.55); display:flex; align-items:center; justify-content:center; color:#ffffff; font-size:16px; font-weight:bold;">🚨</div>' +
+                             '<div style="position:absolute; top:-26px; left:50%; transform:translateX(-50%); background:#dc2626; color:#ffffff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; border:1px solid #ffffff; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.25); pointer-events:none;">⚠️ ' + (name || 'HAZARD ZONE') + '</div>' +
+                           '</div>';
+
+      var hazardSignIcon = L.divIcon({
+        className: '',
+        html: hazardSignHtml,
+        iconSize: [34, 34],
+        iconAnchor: [17, 17]
+      });
+
+      hazardMarker = L.marker([lat, lng], { icon: hazardSignIcon, zIndexOffset: 2500 }).addTo(map);
+      hazardMarker.bindPopup('<strong>🚨 HAZARD: ' + name + '</strong><br/><span>Affected Area Radius: ' + radiusMeters + 'm</span>');
     }
 
     function clearHazard() {
       if (hazardCircle) {
         map.removeLayer(hazardCircle);
         hazardCircle = null;
+      }
+      if (hazardMarker) {
+        map.removeLayer(hazardMarker);
+        hazardMarker = null;
       }
     }
 

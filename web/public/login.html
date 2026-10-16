@@ -223,7 +223,7 @@
 
       <div class="auth-header">
         <div class="auth-logo">🛡️</div>
-        <h1 class="auth-title">SafePath CSUF</h1>
+        <h1 class="auth-title">SafePath</h1>
         <p class="auth-subtitle">Emergency Alert & Safe Evacuation Routing System</p>
       </div>
 
@@ -244,7 +244,7 @@
       <form id="form-login" onsubmit="handleLogin(event)">
         <div class="form-group">
           <label class="form-label" for="login-email">Campus Email</label>
-          <input type="email" id="login-email" class="form-control" placeholder="user@csu.fullerton.edu" required autocomplete="username" value="johaliman@csu.fullerton.edu">
+          <input type="email" id="login-email" class="form-control" placeholder="user@campus.edu" required autocomplete="username" value="johaliman@csu.fullerton.edu">
         </div>
         <div class="form-group">
           <label class="form-label" for="login-password">Password</label>
@@ -294,7 +294,7 @@
         </div>
         <div class="form-group">
           <label class="form-label" for="reg-email">Email Address</label>
-          <input type="email" id="reg-email" class="form-control" placeholder="alex@csu.fullerton.edu" required>
+          <input type="email" id="reg-email" class="form-control" placeholder="alex@campus.edu" required>
         </div>
         <div class="form-group">
           <label class="form-label" for="reg-password">Password</label>
@@ -310,7 +310,7 @@
             SafePath acquires your position to calculate immediate evacuation routes if a hazard strikes your sector.
           </div>
           <div style="margin-top:8px; font-size:0.82rem; font-weight:600; color:#0f172a;" id="loc-status-text">
-            📍 Captured: <span id="loc-coords-preview">33.8820, -117.8850 (CSUF Campus Center)</span>
+            📍 Captured: <span id="loc-coords-preview">33.8820, -117.8850 (Campus Center)</span>
           </div>
           <input type="hidden" id="reg-lat" value="33.8820">
           <input type="hidden" id="reg-lng" value="-117.8850">
@@ -418,7 +418,7 @@
       const latInp = document.getElementById('reg-lat');
       const lngInp = document.getElementById('reg-lng');
       if (!navigator.geolocation) {
-        preview.textContent = '33.8820, -117.8850 (Browser GPS unavailable - CSUF default)';
+        preview.textContent = '33.8820, -117.8850 (Browser GPS unavailable - default)';
         return;
       }
       preview.textContent = 'Detecting satellite GPS coordinates... 🛰️';
@@ -434,7 +434,7 @@
           // Fallback to Fullerton Campus coordinates
           latInp.value = '33.8813';
           lngInp.value = '-117.8854';
-          preview.textContent = '33.8813, -117.8854 (CSUF Pollak Quad)';
+          preview.textContent = '33.8813, -117.8854 (Pollak Quad)';
         },
         { enableHighAccuracy: true, timeout: 6000 }
       );

@@ -289,6 +289,7 @@
             android:id="@+id/cardGmapsNavigation"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:visibility="gone"
             android:orientation="vertical"
             android:background="#FFFFFF"
             android:elevation="2dp"
@@ -681,6 +682,7 @@
             android:id="@+id/bottomControlCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:visibility="gone"
             android:orientation="vertical"
             android:background="#FFFFFF"
             android:paddingTop="12dp"
@@ -691,6 +693,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:visibility="gone"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:layout_marginBottom="10dp">
@@ -700,6 +703,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:visibility="gone"
                     android:text="🟢 Campus Status: All Clear (Safe Zone)"
                     android:textColor="#16A34A"
                     android:textSize="12sp"
@@ -709,6 +713,7 @@
                     android:id="@+id/switchAccessibility"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:visibility="gone"
                     android:text="♿ Ramps"
                     android:textColor="#475569"
                     android:textSize="11sp" />
@@ -722,12 +727,10 @@
 
                 <Button
                     android:id="@+id/btnMoveToSafeZone"
-                    android:layout_width="0dp"
-                    android:layout_height="46dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="5dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
                     android:text="🏃 Move to Safe Zone"
-                    android:textSize="12sp"
+                    android:textSize="14sp"
                     android:textStyle="bold"
                     android:textColor="#FFFFFF"
                     android:backgroundTint="#D97706"
@@ -735,10 +738,9 @@
 
                 <Button
                     android:id="@+id/btnMoveAllToSafeZone"
-                    android:layout_width="0dp"
-                    android:layout_height="46dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="5dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone"
                     android:text="👥 Move All"
                     android:textSize="12sp"
                     android:textStyle="bold"
@@ -770,6 +772,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:visibility="gone"
                 android:orientation="vertical"
                 android:background="@drawable/banner_admin_light"
                 android:padding="12dp"
@@ -868,6 +871,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:visibility="gone"
                 android:orientation="horizontal"
                 android:background="@drawable/banner_hazard_pin_light"
                 android:paddingHorizontal="10dp"
@@ -888,6 +892,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:visibility="gone"
                     android:text="TAP MAP TO PIN 🎯"
                     android:textColor="#DC2626"
                     android:textSize="10sp"
@@ -929,6 +934,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:visibility="gone"
                     android:text="SEVERITY LEVEL"
                     android:textColor="#475569"
                     android:textSize="10sp"
@@ -938,6 +944,7 @@
                     android:id="@+id/spinnerAdminSeverity"
                     android:layout_width="match_parent"
                     android:layout_height="44dp"
+                    android:visibility="gone"
                     android:background="@drawable/input_field_light"
                     android:layout_marginTop="5dp"
                     android:layout_marginBottom="12dp" />
@@ -966,6 +973,7 @@
                     android:id="@+id/etAdminInstructions"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:visibility="gone"
                     android:hint="Evacuation instructions..."
                     android:textColor="#0F172A"
                     android:textColorHint="#94A3B8"
@@ -1038,6 +1046,7 @@
                         style="@style/Widget.MaterialComponents.Button.TextButton"
                         android:layout_width="wrap_content"
                         android:layout_height="32dp"
+                        android:visibility="gone"
                         android:text="🔄 Reset Fleet"
                         android:textSize="11sp"
                         android:textStyle="bold"

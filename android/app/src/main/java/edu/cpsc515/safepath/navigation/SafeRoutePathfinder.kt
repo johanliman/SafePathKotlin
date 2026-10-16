@@ -100,18 +100,72 @@ class SafeRoutePathfinder(
             }
         }
 
-        // Determine closest uncompromised safe zone (STRICTLY WEST OF CA-57 FREEWAY)
-        val validSafeZones = safeZones.filter { sz ->
+        // 1. Identify which safe zones are truly safe (strictly west of CA-57 freeway AND outside all active alerts)
+        val candidateZones = safeZones.filter { sz ->
             sz.longitude <= -117.8825 && activeAlerts.none { alert ->
-                alert.active && calculateDistance(sz.latitude, sz.longitude, alert.latitude, alert.longitude) < (alert.radiusMeters + 15.0)
+                alert.active && calculateDistance(sz.latitude, sz.longitude, alert.latitude, alert.longitude) <= (alert.radiusMeters + 35.0)
             }
-        }.ifEmpty { safeZones.filter { it.longitude <= -117.8825 } }
+        }.toMutableList()
+
+        // 2. Fallback regional perimeter safe havens (west of freeway) if primary campus safe havens are compromised
+        if (candidateZones.isEmpty()) {
+            val regionalHavens = listOf(
+                SafeZone("SZ5", "North Regional Perimeter Haven", "assembly", 33.8885, -117.8855, 3000, listOf("Medical", "Water"), true, "North regional safe haven"),
+                SafeZone("SZ6", "West Regional Safe Center", "shelter", 33.8850, -117.8935, 3000, listOf("Shelter", "Water"), true, "West regional safe shelter"),
+                SafeZone("SZ7", "South Regional Safe Center", "exit", 33.8745, -117.8850, 3000, listOf("Shuttle", "Escort"), true, "South regional safe exit"),
+                SafeZone("SZ8", "Southwest Perimeter Assembly", "exit", 33.8770, -117.8910, 3000, listOf("Escort"), true, "Southwest perimeter assembly")
+            )
+            candidateZones.addAll(regionalHavens.filter { sz ->
+                sz.longitude <= -117.8825 && activeAlerts.none { alert ->
+                    alert.active && calculateDistance(sz.latitude, sz.longitude, alert.latitude, alert.longitude) <= (alert.radiusMeters + 30.0)
+                }
+            })
+        }
+
+        // 3. Mathematical Dynamic Perimeter Safe Haven Guarantee:
+        // If an extreme disaster covers even regional havens (or candidateZones is still empty):
+        if (candidateZones.isEmpty()) {
+            val primaryAlert = activeAlerts.firstOrNull { it.active }
+            if (primaryAlert != null) {
+                val dLatM = (currentLat - primaryAlert.latitude) * 111000.0
+                val dLngM = (currentLng - primaryAlert.longitude) * 111000.0 * cos(Math.toRadians(primaryAlert.latitude))
+                val distM = sqrt(dLatM * dLatM + dLngM * dLngM)
+
+                var uLat = if (distM > 1.0) dLatM / distM else -0.7071
+                var uLng = if (distM > 1.0) dLngM / distM else -0.7071
+
+                // CA-57 freeway safety guard: never point eastward towards CA-57 freeway
+                if (uLng > 0 && primaryAlert.longitude + (uLng * (primaryAlert.radiusMeters + 80.0) / (111000.0 * cos(Math.toRadians(primaryAlert.latitude)))) > -117.8830) {
+                    uLng = -abs(uLng)
+                }
+
+                val safeDist = primaryAlert.radiusMeters + 80.0
+                val safeLat = primaryAlert.latitude + (uLat * safeDist) / 111000.0
+                val safeLng = min(-117.8835, primaryAlert.longitude + (uLng * safeDist) / (111000.0 * cos(Math.toRadians(safeLat))))
+
+                candidateZones.add(
+                    SafeZone(
+                        id = "SZ-SAFE-EXT",
+                        name = "Exterior Campus Safe Haven",
+                        type = "exit",
+                        latitude = safeLat,
+                        longitude = safeLng,
+                        capacity = 5000,
+                        supplies = listOf("Emergency Evacuation Corridor", "First Aid"),
+                        accessible = true,
+                        description = "Safe perimeter zone strictly outside the hazard perimeter"
+                    )
+                )
+            } else {
+                candidateZones.addAll(safeZones.filter { it.longitude <= -117.8825 })
+            }
+        }
 
         var bestZone: SafeZone? = null
         var bestZoneNode: WalkwayNode? = null
         var minTotalWeight = Double.POSITIVE_INFINITY
 
-        for (sz in validSafeZones) {
+        for (sz in candidateZones) {
             val szNode = nodes.minByOrNull { n ->
                 calculateDistance(sz.latitude, sz.longitude, n.latitude, n.longitude)
             } ?: continue
@@ -124,16 +178,45 @@ class SafeRoutePathfinder(
             }
         }
 
-        if (bestZone == null || bestZoneNode == null) {
-            bestZone = validSafeZones.firstOrNull() ?: return null
-            bestZoneNode = nodes.minByOrNull { n ->
-                calculateDistance(bestZone.latitude, bestZone.longitude, n.latitude, n.longitude)
-            } ?: return null
+        val chosenZone = bestZone ?: candidateZones.firstOrNull() ?: return null
+        val chosenZoneNode = bestZoneNode ?: nodes.minByOrNull { n ->
+            calculateDistance(chosenZone.latitude, chosenZone.longitude, n.latitude, n.longitude)
+        } ?: return null
+
+        // 4. Absolute Final Safety Check: Verify bestZone is 100% outside all active hazard circles
+        var finalSafeZone: SafeZone = chosenZone
+        for (alert in activeAlerts) {
+            if (!alert.active) continue
+            val d = calculateDistance(finalSafeZone.latitude, finalSafeZone.longitude, alert.latitude, alert.longitude)
+            if (d <= alert.radiusMeters + 25.0) {
+                val dLatM = (finalSafeZone.latitude - alert.latitude) * 111000.0
+                val dLngM = (finalSafeZone.longitude - alert.longitude) * 111000.0 * cos(Math.toRadians(alert.latitude))
+                val distM = sqrt(dLatM * dLatM + dLngM * dLngM)
+                var uLat = if (distM > 1.0) dLatM / distM else -0.7071
+                var uLng = if (distM > 1.0) dLngM / distM else -0.7071
+                if (uLng > 0 && alert.longitude > -117.8840) uLng = -abs(uLng)
+
+                val safeDist = alert.radiusMeters + 70.0
+                val safeLat = alert.latitude + (uLat * safeDist) / 111000.0
+                val safeLng = min(-117.8835, alert.longitude + (uLng * safeDist) / (111000.0 * cos(Math.toRadians(safeLat))))
+
+                finalSafeZone = SafeZone(
+                    id = finalSafeZone.id,
+                    name = finalSafeZone.name,
+                    type = finalSafeZone.type,
+                    latitude = safeLat,
+                    longitude = safeLng,
+                    capacity = finalSafeZone.capacity,
+                    supplies = finalSafeZone.supplies,
+                    accessible = finalSafeZone.accessible,
+                    description = finalSafeZone.description
+                )
+            }
         }
 
         // Reconstruct path
         val routeNodes = mutableListOf<WalkwayNode>()
-        var curr: String? = bestZoneNode.id
+        var curr: String? = chosenZoneNode.id
         while (curr != null) {
             val node = nodeMap[curr]
             if (node != null) routeNodes.add(0, node)
@@ -142,7 +225,7 @@ class SafeRoutePathfinder(
         if (routeNodes.isEmpty() || (routeNodes.size == 1 && routeNodes[0].id != startNode.id)) {
             routeNodes.clear()
             routeNodes.add(startNode)
-            routeNodes.add(bestZoneNode)
+            routeNodes.add(chosenZoneNode)
         }
 
         // Real distance calculation
@@ -153,6 +236,10 @@ class SafeRoutePathfinder(
                 routeNodes[i + 1].latitude, routeNodes[i + 1].longitude
             )
         }
+        totalDist += calculateDistance(
+            routeNodes.last().latitude, routeNodes.last().longitude,
+            finalSafeZone.latitude, finalSafeZone.longitude
+        )
 
         val walkSpeed = if (requireAccessible) 0.85 else 1.2
         val estMinutes = max(1, (totalDist / walkSpeed / 60.0).roundToInt())
@@ -166,10 +253,10 @@ class SafeRoutePathfinder(
             ).roundToInt()
             instructions.add("Follow green evacuation path to ${routeNodes[i + 1].name} ($d m).")
         }
-        instructions.add("Arrive at Safe Haven: ${bestZone.name}.")
+        instructions.add("Arrive at Safe Haven: ${finalSafeZone.name}.")
 
         return SafeNavigationRoute(
-            destinationSafeZone = bestZone,
+            destinationSafeZone = finalSafeZone,
             waypoints = routeNodes,
             totalDistanceMeters = totalDist,
             estimatedTimeMinutes = estMinutes,

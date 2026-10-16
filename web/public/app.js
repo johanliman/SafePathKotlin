@@ -895,7 +895,7 @@ class SafePathEngine {
         eta.className = 'gmaps-eta-badge';
       }
       if (dist) dist.textContent = '(Safe Zone)';
-      if (haven) haven.textContent = 'CSUF Safe Campus';
+      if (haven) haven.textContent = 'Safe Campus';
       if (hazardPill) {
         hazardPill.textContent = '✓ SAFE';
         hazardPill.className = 'badge badge-success';
@@ -926,7 +926,7 @@ class SafePathEngine {
         eta.className = 'gmaps-eta-badge';
       }
       if (dist) dist.textContent = `(${Math.round(options.distToCenter || 0)}m from incident)`;
-      if (haven) haven.textContent = 'CSUF Safe Campus';
+      if (haven) haven.textContent = 'Safe Campus';
       if (hazardPill) {
         hazardPill.textContent = '✓ SAFE';
         hazardPill.className = 'badge badge-success';
@@ -1011,7 +1011,7 @@ class SafePathEngine {
           </div>
           <div class="itinerary-step">
             <div class="itinerary-step-icon">🚶</div>
-            <div class="itinerary-step-text">Follow CSUF main pedestrian walkway (${Math.round(options.totalDistMeters * 0.4)}m)</div>
+            <div class="itinerary-step-text">Follow main pedestrian walkway (${Math.round(options.totalDistMeters * 0.4)}m)</div>
             <div class="itinerary-step-dist">~${Math.round(options.totalDistMeters * 0.4)}m</div>
           </div>
           <div class="itinerary-step">
@@ -1092,7 +1092,7 @@ class SafePathEngine {
               <span class="evac-icon">✓</span>
               <div>
                 <div class="evac-label" style="color: #666666;">LOCATION SAFE: OUTSIDE AFFECTED AREA</div>
-                <div class="evac-dest-name">CSUF Campus · ${this.userName}</div>
+                <div class="evac-dest-name">Campus · ${this.userName}</div>
               </div>
             </div>
             <div>
