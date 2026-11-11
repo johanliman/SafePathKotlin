@@ -2,11 +2,11 @@
 ### CPSC 515 Mobile Computing — Comprehensive Group Project
 
 **Project Team:**
-- **Daniel Wu** — UI/UX and Emergency Alert Interface
-- **Johan Liman** — Mobile Application & Integration (Kotlin/Android)
-- **Jie Chen** — Emergency Data Management & Geofencing Queries
-- **Yu-Cheng Chang** — Safe Route Planning & A* Pathfinding Engine
-- **Siling Liu** — Testing, Benchmarking & Experimental Evaluation
+- **Daniel Wu**
+- **Johan Liman**
+- **Jie Chen**
+- **Yu-Cheng Chang**
+- **Siling Liu**
 
 ---
 
@@ -101,18 +101,4 @@ The native Android project is located under `android/`:
 
 ## 📚 Deliverables & Documentation
 
-- [Technical Project Report](docs/CPSC515_SafePath_Technical_Report.md): Complete architecture, algorithms, mobile computing challenges, and team contributions.
 - [Experimental Results Report](docs/CPSC515_SafePath_Experimental_Results.md): Quantitative data answering all research questions (GPS accuracy, latency, battery, user mobility).
-- [Presentation Slides & Demo Script](docs/CPSC515_SafePath_Presentation_Slides.md): Slide deck outline and step-by-step presentation script.
-
----
-
-## 👥 Task Allocation Matrix
-
-| Team Member | Primary Responsibility | Delivered Components |
-| :--- | :--- | :--- |
-| **Daniel Wu** | UI/UX & Emergency Alerts | Web UI, Android layouts, warning banners, accessibility controls |
-| **Johan Liman** | Mobile App & Integration | Android Kotlin client, FusedLocationProviderClient, client-server sync |
-| **Jie Chen** | Emergency Data Management | Geofencing polygons, 12 emergency schemas, spatial query services |
-| **Yu-Cheng Chang** | Safe Route Planning | A* Pathfinding engine, dynamic hazard repulsion cost function |
-| **Siling Liu** | Testing & Evaluation | GPS jitter benchmarks, latency tests, battery/bandwidth profiling |

@@ -173,9 +173,7 @@ SafePathKotlin/
 │       └── model/                      # DomainModels (Alerts, Nodes, Edges)
 │
 └── docs/                               # Academic Reports & Evaluation Data
-    ├── CPSC515_SafePath_Technical_Report.md
-    ├── CPSC515_SafePath_Experimental_Results.md
-    └── CPSC515_SafePath_Presentation_Slides.md
+    └── CPSC515_SafePath_Experimental_Results.md
 ```
 
 ---
