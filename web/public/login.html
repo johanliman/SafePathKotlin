@@ -250,6 +250,29 @@
           <label class="form-label" for="login-password">Password</label>
           <input type="password" id="login-password" class="form-control" placeholder="••••••••" required autocomplete="current-password" value="johanliman">
         </div>
+        <!-- Live Login Location Detection Badge -->
+        <div class="form-group" style="margin-top: 14px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" style="margin-bottom:0; font-size:0.8rem; font-weight:700; color:#334155;">🛰️ Live Login Location</label>
+            <button type="button" onclick="detectLoginLocation(true)" style="padding: 3px 8px; font-size: 0.72rem; font-weight:600; background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; border-radius: 4px; cursor: pointer;">
+              🔄 Refresh GPS
+            </button>
+          </div>
+          <div id="login-location-status" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; font-size: 0.82rem; color: #334155;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span id="login-loc-icon">🛰️</span>
+              <strong id="login-loc-label">Detecting device GPS coordinates...</strong>
+            </div>
+            <div id="login-loc-coords" style="font-family: monospace; font-size: 0.76rem; color: #64748b; margin-top: 4px;">
+              Acquiring satellite lock for login verification...
+            </div>
+          </div>
+          <input type="hidden" id="login-lat" value="33.8813">
+          <input type="hidden" id="login-lng" value="-117.8854">
+          <input type="hidden" id="login-accuracy" value="5.0">
+          <input type="hidden" id="login-is-mock" value="false">
+        </div>
+
         <button type="submit" id="btn-login-submit" class="btn-submit">
           <span>Sign In to SafePath</span> ➔
         </button>
@@ -262,9 +285,9 @@
               <strong style="color:#dc2626;">🛡️ Admin</strong>
               <span>admin@safepath.com</span>
             </button>
-            <button type="button" class="quick-chip" onclick="fillAndLogin('johaliman@csu.fullerton.edu', 'johanliman')">
+            <button type="button" class="quick-chip" onclick="fillAndLogin('johanliman@csu.fullerton.edu', 'johanliman')">
               <strong>🧑 Johan</strong>
-              <span>johaliman@csu.fullerton.edu</span>
+              <span>johanliman@csu.fullerton.edu</span>
             </button>
             <button type="button" class="quick-chip" onclick="fillAndLogin('d.wu@csu.fullerton.edu', 'danielwu')">
               <strong>🧑 Daniel</strong>
@@ -360,11 +383,130 @@
       }
     }
 
-    function fillAndLogin(email, password) {
+    async function fillAndLogin(email, password) {
       document.getElementById('login-email').value = email;
       document.getElementById('login-password').value = password;
-      handleLogin(new Event('submit'));
+      await handleLogin(new Event('submit'));
     }
+
+    let isDetectingLocation = false;
+    let locationResolutionPromise = null;
+
+    function detectLoginLocation(showNotification = false, onComplete = null) {
+      const statusIcon = document.getElementById('login-loc-icon');
+      const statusLabel = document.getElementById('login-loc-label');
+      const statusCoords = document.getElementById('login-loc-coords');
+      const latInp = document.getElementById('login-lat');
+      const lngInp = document.getElementById('login-lng');
+      const accInp = document.getElementById('login-accuracy');
+      const mockInp = document.getElementById('login-is-mock');
+
+      if (!navigator.geolocation) {
+        statusIcon.textContent = '📍';
+        statusLabel.textContent = 'Campus Default Location (GPS Unsupported)';
+        statusCoords.textContent = '33.88130, -117.88540 (CSUF Pollak Quad)';
+        latInp.value = '33.8813';
+        lngInp.value = '-117.8854';
+        accInp.value = '10.0';
+        mockInp.value = 'false';
+        if (onComplete) onComplete();
+        return;
+      }
+
+      isDetectingLocation = true;
+      statusIcon.textContent = '🛰️';
+      statusLabel.textContent = 'Detecting Real Device GPS Location...';
+      statusCoords.textContent = 'Acquiring satellite lock for login verification...';
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          isDetectingLocation = false;
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const acc = pos.coords.accuracy || 5.0;
+
+          latInp.value = lat.toFixed(6);
+          lngInp.value = lng.toFixed(6);
+          latInp.dataset.locked = 'true';
+          accInp.value = acc.toFixed(1);
+          mockInp.value = 'false';
+
+          statusIcon.textContent = '🟢';
+          statusLabel.textContent = 'Real Device Location Detected';
+          statusCoords.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)} (±${Math.round(acc)}m accuracy)`;
+
+          // Reverse geocode address to display street/city (e.g. Chinaberry, Irvine)
+          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, {
+            headers: { 'User-Agent': 'SafePathWeb/1.0' }
+          }).then(r => r.json()).then(data => {
+            const addr = data.address || {};
+            const road = addr.road || addr.pedestrian || addr.street || addr.residential || addr.neighbourhood || addr.suburb || '';
+            const city = addr.city || addr.town || addr.municipality || '';
+            if (road || city) {
+              const placeStr = road && city ? `${road}, ${city}` : (road || city);
+              statusLabel.textContent = `📍 ${placeStr} (Real Location Detected)`;
+              statusCoords.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)} · ${placeStr} (±${Math.round(acc)}m accuracy)`;
+            }
+          }).catch(() => {});
+
+          if (showNotification) {
+            showAlert(`Device GPS locked: ${lat.toFixed(4)}, ${lng.toFixed(4)}`, false);
+          }
+          if (onComplete) onComplete();
+        },
+        (err) => {
+          isDetectingLocation = false;
+          // Fallback to Fullerton Campus Center only if permission denied/unavailable
+          if (latInp.dataset.locked !== 'true') {
+            latInp.value = '33.8813';
+            lngInp.value = '-117.8854';
+            accInp.value = '8.0';
+            mockInp.value = 'false';
+
+            statusIcon.textContent = '📍';
+            statusLabel.textContent = 'CSU Fullerton Quad (Campus Default)';
+            statusCoords.textContent = '33.88130, -117.88540 (Permission denied / default)';
+          }
+          if (onComplete) onComplete();
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 }
+      );
+    }
+
+    function ensureLoginLocation(timeoutMs = 3500) {
+      const latInp = document.getElementById('login-lat');
+      if (latInp && latInp.dataset.locked === 'true') {
+        return Promise.resolve();
+      }
+      if (!navigator.geolocation) {
+        return Promise.resolve();
+      }
+      if (locationResolutionPromise) {
+        return locationResolutionPromise;
+      }
+      locationResolutionPromise = new Promise((resolve) => {
+        let done = false;
+        const timer = setTimeout(() => {
+          if (!done) {
+            done = true;
+            resolve();
+          }
+        }, timeoutMs);
+
+        detectLoginLocation(false, () => {
+          if (!done) {
+            done = true;
+            clearTimeout(timer);
+            resolve();
+          }
+        });
+      });
+      return locationResolutionPromise;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      detectLoginLocation();
+    });
 
     async function handleLogin(e) {
       if (e && e.preventDefault) e.preventDefault();
@@ -374,13 +516,32 @@
       const btn = document.getElementById('btn-login-submit');
 
       btn.disabled = true;
-      btn.innerHTML = '<span>Verifying credentials...</span> ⏳';
+      btn.innerHTML = '<span>Acquiring satellite GPS & verifying...</span> 🛰️';
+
+      // Ensure real GPS coordinates are acquired before submitting login
+      await ensureLoginLocation(3500);
+
+      const latVal = document.getElementById('login-lat').value;
+      const lngVal = document.getElementById('login-lng').value;
+      const accVal = document.getElementById('login-accuracy').value;
+      const isMockVal = document.getElementById('login-is-mock').value === 'true';
+
+      btn.innerHTML = '<span>Verifying credentials & location...</span> ⏳';
+
+      const payload = {
+        email,
+        password,
+        latitude: latVal ? parseFloat(latVal) : 33.8813,
+        longitude: lngVal ? parseFloat(lngVal) : -117.8854,
+        accuracy: accVal ? parseFloat(accVal) : 5.0,
+        isMock: isMockVal
+      };
 
       try {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
 
@@ -395,8 +556,25 @@
         localStorage.setItem('safepath_user', JSON.stringify(data.user));
         localStorage.setItem('safepath_user_email', data.user.email);
         localStorage.setItem('safepath_role', data.user.role);
+        if (data.locationAnalysis) {
+          localStorage.setItem('safepath_location_analysis', JSON.stringify(data.locationAnalysis));
+        }
 
-        showAlert(`Welcome back, ${data.user.name}! Redirecting...`, false);
+        // Format detailed location verification feedback
+        let locDetailsHtml = '';
+        if (data.locationAnalysis) {
+          const a = data.locationAnalysis;
+          if (a.hasPreviousLogin && a.lastLoginLocation) {
+            locDetailsHtml = `<br/><span style="font-size:0.83rem; color:#334155;">📍 Current: <strong>${a.currentLocation.locationName}</strong><br/>🕰️ Last login location: <strong>${a.lastLoginLocation.locationName}</strong> (${a.distanceFromLastLoginMeters}m away)</span>`;
+          } else {
+            locDetailsHtml = `<br/><span style="font-size:0.83rem; color:#334155;">📍 Current Location: <strong>${a.currentLocation.locationName}</strong> (First recorded login)</span>`;
+          }
+          if (a.isMockLocation) {
+            locDetailsHtml += `<br/><span style="font-size:0.83rem; color:#dc2626; font-weight:700;">⚠️ Mock Location Detected: ${a.mockReason || 'Simulated provider active'}</span>`;
+          }
+        }
+
+        showAlert(`Welcome back, ${data.user.name}! ${locDetailsHtml}`, false);
 
         setTimeout(() => {
           if (data.user.role === 'Admin') {
@@ -404,7 +582,7 @@
           } else {
             window.location.href = '/user.html';
           }
-        }, 500);
+        }, 900);
 
       } catch (err) {
         showAlert('Network error: ' + err.message, true);

@@ -39,6 +39,13 @@ class LocationTrackingService : Service() {
 
     override fun onBind(intent: Intent?): IBinder = binder
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        intent?.getStringExtra("extra_user_email")?.let {
+            if (it.isNotEmpty()) currentUserEmail = it
+        }
+        return START_STICKY
+    }
+
     override fun onCreate() {
         super.onCreate()
         metricsManager = MobileComputingMetricsManager(this)

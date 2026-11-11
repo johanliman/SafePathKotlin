@@ -6,8 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.location.Geocoder
 import android.location.Location
-import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
 import android.view.View
@@ -16,9 +16,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import edu.cpsc515.safepath.R
 import edu.cpsc515.safepath.network.SafePathApiClient
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 /**
  * LoginActivity - Secure Authentication & Registration Gateway
@@ -27,6 +31,7 @@ import kotlinx.coroutines.launch
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var apiClient: SafePathApiClient
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
 
     private lateinit var tabSignIn: Button
     private lateinit var tabRegister: Button
@@ -59,6 +64,7 @@ class LoginActivity : AppCompatActivity() {
 
     private var capturedLat: Double = 33.8820
     private var capturedLng: Double = -117.8850
+    private var isLocationMocked: Boolean = false
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -74,11 +80,13 @@ class LoginActivity : AppCompatActivity() {
         setContentView(R.layout.activity_login)
 
         apiClient = SafePathApiClient()
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         initViews()
         setupTabs()
         setupQuickLogins()
         setupActions()
+        fetchDeviceLocation()
     }
 
     private fun initViews() {
@@ -142,9 +150,9 @@ class LoginActivity : AppCompatActivity() {
         }
 
         btnQuickJohan.setOnClickListener {
-            etLoginEmail.setText("johaliman@csu.fullerton.edu")
+            etLoginEmail.setText("johanliman@csu.fullerton.edu")
             etLoginPassword.setText("johanliman")
-            performLogin("johaliman@csu.fullerton.edu", "johanliman")
+            performLogin("johanliman@csu.fullerton.edu", "johanliman")
         }
 
         btnQuickDaniel.setOnClickListener {
@@ -208,15 +216,25 @@ class LoginActivity : AppCompatActivity() {
         showLoading(true)
         hideStatus()
 
-        lifecycleScope.launch {
-            val result = apiClient.login(email, pass)
-            showLoading(false)
+        // Fetch fresh location before sending login payload
+        fetchDeviceLocation {
+            lifecycleScope.launch {
+                val result = apiClient.login(email, pass, capturedLat, capturedLng, isLocationMocked)
+                showLoading(false)
 
-            if (result.success) {
-                showStatus("Welcome, ${result.name}! Launching SafePath...", isError = false)
-                navigateToMain(result.role, result.email, result.name, result.latitude, result.longitude)
-            } else {
-                showStatus(result.message.ifEmpty { "Invalid credentials. Please try again." }, isError = true)
+                if (result.success) {
+                    var welcomeMsg = "Welcome, ${result.name}! Verified at ${result.locationName.ifEmpty { "Campus" }}."
+                    if (result.lastLoginLocationName.isNotEmpty()) {
+                        welcomeMsg += " Last login: ${result.lastLoginLocationName} (${result.distanceFromLastLoginMeters}m away)."
+                    }
+                    if (result.isMockLocation) {
+                        welcomeMsg += " [⚠️ Mock Location Active]"
+                    }
+                    showStatus(welcomeMsg, isError = false)
+                    navigateToMain(result.role, result.email, result.name, result.latitude, result.longitude)
+                } else {
+                    showStatus(result.message.ifEmpty { "Invalid credentials. Please try again." }, isError = true)
+                }
             }
         }
     }
@@ -250,7 +268,8 @@ class LoginActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun fetchDeviceLocation() {
+    @SuppressLint("MissingPermission")
+    private fun fetchDeviceLocation(onComplete: (() -> Unit)? = null) {
         val hasFine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         val hasCoarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
@@ -258,29 +277,86 @@ class LoginActivity : AppCompatActivity() {
             locationPermissionLauncher.launch(
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
             )
+            onComplete?.invoke()
             return
         }
 
         try {
+            tvDetectedLocation.text = "📍 Detecting satellite GPS... 🛰️"
+            fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                .addOnSuccessListener { loc ->
+                    if (loc != null) {
+                        applyDetectedLocation(loc)
+                        onComplete?.invoke()
+                    } else {
+                        fusedLocationClient.lastLocation.addOnSuccessListener { lastLoc ->
+                            if (lastLoc != null) {
+                                applyDetectedLocation(lastLoc)
+                            } else {
+                                fallbackLocation()
+                            }
+                            onComplete?.invoke()
+                        }.addOnFailureListener {
+                            fallbackLocation()
+                            onComplete?.invoke()
+                        }
+                    }
+                }
+                .addOnFailureListener {
+                    fallbackLocation()
+                    onComplete?.invoke()
+                }
+        } catch (e: SecurityException) {
+            fallbackLocation()
+            onComplete?.invoke()
+        }
+    }
+
+    private fun applyDetectedLocation(loc: Location) {
+        capturedLat = loc.latitude
+        capturedLng = loc.longitude
+        isLocationMocked = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            loc.isMock
+        } else {
+            @Suppress("DEPRECATION")
+            loc.isFromMockProvider
+        }
+
+        var placeName = ""
+        try {
+            val geocoder = Geocoder(this, Locale.getDefault())
+            @Suppress("DEPRECATION")
+            val addrs = geocoder.getFromLocation(capturedLat, capturedLng, 1)
+            if (!addrs.isNullOrEmpty()) {
+                val a = addrs[0]
+                val road = a.thoroughfare ?: a.subThoroughfare ?: a.featureName ?: ""
+                val city = a.locality ?: a.subAdminArea ?: ""
+                if (road.isNotEmpty() || city.isNotEmpty()) {
+                    placeName = if (road.isNotEmpty() && city.isNotEmpty()) "$road, $city" else "$road$city"
+                }
+            }
+        } catch (e: Exception) {}
+
+        val providerLabel = if (isLocationMocked) "Mock Provider" else "Device GPS"
+        val displayStr = if (placeName.isNotEmpty()) "$placeName ($providerLabel)" else providerLabel
+        tvDetectedLocation.text = String.format("📍 Captured: %.4f, %.4f (%s)", capturedLat, capturedLng, displayStr)
+    }
+
+    private fun fallbackLocation() {
+        try {
             val lm = getSystemService(Context.LOCATION_SERVICE) as? LocationManager
             val loc = lm?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
                 ?: lm?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-
             if (loc != null) {
-                capturedLat = loc.latitude
-                capturedLng = loc.longitude
-                tvDetectedLocation.text = String.format("📍 Captured: %.4f, %.4f (Device GPS)", capturedLat, capturedLng)
-            } else {
-                // Default campus center
-                capturedLat = 33.8813
-                capturedLng = -117.8854
-                tvDetectedLocation.text = "📍 Captured: 33.8813, -117.8854 (Pollak Quad)"
+                applyDetectedLocation(loc)
+                return
             }
-        } catch (e: Exception) {
-            capturedLat = 33.8813
-            capturedLng = -117.8854
-            tvDetectedLocation.text = "📍 Captured: 33.8813, -117.8854 (Pollak Quad)"
-        }
+        } catch (e: Exception) {}
+
+        capturedLat = 33.8813
+        capturedLng = -117.8854
+        isLocationMocked = false
+        tvDetectedLocation.text = "📍 Captured: 33.8813, -117.8854 (Pollak Quad)"
     }
 
     private fun showLoading(loading: Boolean) {

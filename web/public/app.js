@@ -72,6 +72,10 @@ class SafePathEngine {
     // Initial state check
     this.renderAllStudentsOnMap();
     this.computeSafeRoute();
+
+    if (this.role === 'user') {
+      this.initUserLocationState();
+    }
   }
 
   async syncFleetFromServer() {
@@ -87,6 +91,11 @@ class SafePathEngine {
             st.lng = parseFloat(u.longitude);
             st.status = u.status;
             st.name = u.name;
+            st.isMockLocation = Boolean(u.isMockLocation);
+            st.mockSource = u.mockSource;
+            st.locationName = u.locationName;
+            st.lastLoginLocation = u.lastLoginLocation;
+            st.distanceFromLastLoginMeters = u.distanceFromLastLoginMeters;
             if (u.distanceMeters !== undefined) st.distanceMeters = u.distanceMeters;
             if (u.estMinutes !== undefined) st.estMinutes = u.estMinutes;
             if (u.targetHaven !== undefined) st.targetHaven = u.targetHaven;
@@ -97,6 +106,11 @@ class SafePathEngine {
               lat: parseFloat(u.latitude),
               lng: parseFloat(u.longitude),
               status: u.status || 'NORMAL',
+              isMockLocation: Boolean(u.isMockLocation),
+              mockSource: u.mockSource,
+              locationName: u.locationName,
+              lastLoginLocation: u.lastLoginLocation,
+              distanceFromLastLoginMeters: u.distanceFromLastLoginMeters,
               distanceMeters: u.distanceMeters,
               estMinutes: u.estMinutes,
               targetHaven: u.targetHaven
@@ -108,6 +122,12 @@ class SafePathEngine {
           if (me) {
             this.userLat = me.lat;
             this.userLng = me.lng;
+            this.isMockLocation = me.isMockLocation;
+            this.mockSource = me.mockSource;
+            this.locationName = me.locationName;
+            this.lastLoginLocation = me.lastLoginLocation;
+            this.distanceFromLastLoginMeters = me.distanceFromLastLoginMeters;
+            this.updateLocationWidgets(me);
           }
         }
       }
@@ -499,11 +519,16 @@ class SafePathEngine {
   // --- SWITCH STUDENT: JUMPS POSITION ON MAP & RE-EVALUATES ROUTE ---
   switchActiveUser(email) {
     const emailAliases = {
-      'daniel.wu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
+      'johanliman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
       'johan.liman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
+      'daniel.wu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
+      'danielwu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
       'jie.chen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
+      'jiechen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
       'yucheng.chang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
-      'siling.liu@csu.fullerton.edu': 'siling313@csu.fullerton.edu'
+      'yuchengchang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
+      'siling.liu@csu.fullerton.edu': 'siling313@csu.fullerton.edu',
+      'silingliu@csu.fullerton.edu': 'siling313@csu.fullerton.edu'
     };
     const targetEmail = emailAliases[email] || email;
     const student = this.students.find(s => 
@@ -560,14 +585,18 @@ class SafePathEngine {
   }
 
   // --- LOCATION CHANGING ---
-  setUserLocation(lat, lng, dist, mins, targetHaven) {
+  setUserLocation(lat, lng, dist, mins, targetHaven, isMock = false, mockSource = null) {
     this.userLat = lat;
     this.userLng = lng;
+    this.isMockLocation = Boolean(isMock);
+    this.mockSource = mockSource;
 
     const currentStudent = this.students.find(s => s.email === this.userEmail);
     if (currentStudent) {
       currentStudent.lat = lat;
       currentStudent.lng = lng;
+      currentStudent.isMockLocation = this.isMockLocation;
+      currentStudent.mockSource = this.mockSource;
       if (dist !== undefined) currentStudent.distanceMeters = dist;
       if (mins !== undefined) currentStudent.estMinutes = mins;
       if (targetHaven !== undefined) currentStudent.targetHaven = targetHaven;
@@ -583,6 +612,8 @@ class SafePathEngine {
       if (adminSt) {
         adminSt.lat = lat;
         adminSt.lng = lng;
+        adminSt.isMockLocation = this.isMockLocation;
+        adminSt.mockSource = this.mockSource;
         if (dist !== undefined) adminSt.distanceMeters = dist;
       }
       window.safePathAdmin.renderAllStudentsOnMap();
@@ -590,30 +621,43 @@ class SafePathEngine {
 
     this.renderAllStudentsOnMap();
     this.computeSafeRoute();
-    this.syncLocationToServer(lat, lng, dist, mins, targetHaven);
+    this.syncLocationToServer(lat, lng, dist, mins, targetHaven, isMock, mockSource);
   }
 
-  async syncLocationForEmail(email, name, lat, lng, distanceMeters, estMinutes, targetHaven) {
+  async syncLocationForEmail(email, name, lat, lng, distanceMeters, estMinutes, targetHaven, isMock = false, mockSource = null) {
     try {
       const payload = {
         email: email,
         name: name,
         latitude: lat,
-        longitude: lng
+        longitude: lng,
+        isMock: Boolean(isMock),
+        mockSource: mockSource || null
       };
       if (distanceMeters !== undefined) payload.distanceMeters = distanceMeters;
       if (estMinutes !== undefined) payload.estMinutes = estMinutes;
       if (targetHaven !== undefined) payload.targetHaven = targetHaven;
 
-      await fetch('/api/users/location', {
+      const res = await fetch('/api/users/location', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      const data = await res.json();
+      if (data && data.success) {
+        if (email === this.userEmail) {
+          this.lastLoginLocation = data.lastLoginLocation;
+          this.distanceFromLastLoginMeters = data.distanceFromLastLoginMeters;
+          this.locationName = data.locationName;
+          this.isMockLocation = data.isMockLocation;
+          this.mockSource = data.mockSource;
+          this.updateLocationWidgets(data);
+        }
+      }
     } catch (e) {}
   }
 
-  async syncLocationToServer(lat, lng, dist, mins, targetHaven) {
+  async syncLocationToServer(lat, lng, dist, mins, targetHaven, isMock = false, mockSource = null) {
     if (dist === undefined || mins === undefined) {
       if (this.activeAlerts && this.activeAlerts.length > 0) {
         const route = this.calculateSafeRoute(lat, lng);
@@ -624,22 +668,166 @@ class SafePathEngine {
         }
       }
     }
-    return this.syncLocationForEmail(this.userEmail, this.userName, lat, lng, dist, mins, targetHaven);
+    return this.syncLocationForEmail(this.userEmail, this.userName, lat, lng, dist, mins, targetHaven, isMock, mockSource);
   }
 
   teleportToBuilding(bId) {
     const coords = {
       'B1': { lat: 33.8813, lng: -117.8854, name: 'Pollak Library' },
-      'B2': { lat: 33.8802, lng: -117.8858, name: 'Science Hall' },
-      'B3': { lat: 33.8820, lng: -117.8885, name: 'Student Union' },
-      'B4': { lat: 33.8829, lng: -117.8828, name: 'Engineering Quad' },
-      'B5': { lat: 33.8865, lng: -117.8845, name: 'Residence Halls' },
-      'B6': { lat: 33.8845, lng: -117.8890, name: 'Titan Stadium' }
+      'B2': { lat: 33.8800, lng: -117.8860, name: 'McCarthy Science Hall' },
+      'B3': { lat: 33.8820, lng: -117.8885, name: 'Titan Student Union' },
+      'B4': { lat: 33.8829, lng: -117.8828, name: 'Engineering & CS Building' },
+      'B5': { lat: 33.8865, lng: -117.8845, name: 'Student Residence Halls' },
+      'B6': { lat: 33.8845, lng: -117.8890, name: 'Titan Athletics Stadium' },
+      'B7': { lat: 33.8808, lng: -117.8835, name: 'Humanities & Social Sciences' },
+      'B8': { lat: 33.8835, lng: -117.8870, name: 'Campus Health & Medical Center' },
+      'B9': { lat: 33.8795, lng: -117.8840, name: 'University Police Department' },
+      'B10': { lat: 33.8810, lng: -117.8875, name: 'Visual Arts Complex' },
+      'SZ1': { lat: 33.8842, lng: -117.8855, name: 'North Quad Assembly Field (SZ1)' },
+      'SZ2': { lat: 33.8830, lng: -117.8840, name: 'East Campus Safe Haven (SZ2)' },
+      'SZ3': { lat: 33.8850, lng: -117.8895, name: 'West Stadium Shelter (SZ3)' },
+      'SZ4': { lat: 33.8785, lng: -117.8850, name: 'South Gate Plaza (SZ4)' }
     };
     const c = coords[bId];
     if (c) {
-      this.setUserLocation(c.lat, c.lng);
-      this.map.panTo([c.lat, c.lng]);
+      this.setUserLocation(c.lat, c.lng, undefined, undefined, undefined, true, `Teleport: ${c.name}`);
+      if (this.map) this.map.panTo([c.lat, c.lng]);
+    }
+  }
+
+  resetToRealGps() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          this.setUserLocation(pos.coords.latitude, pos.coords.longitude, undefined, undefined, undefined, false, 'Real Device GPS');
+          if (this.map) this.map.setView([pos.coords.latitude, pos.coords.longitude], 16);
+        },
+        (err) => {
+          this.setUserLocation(33.8813, -117.8854, undefined, undefined, undefined, false, 'CSUF Quad');
+          if (this.map) this.map.setView([33.8813, -117.8854], 16);
+        },
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    } else {
+      this.setUserLocation(33.8813, -117.8854, undefined, undefined, undefined, false, 'CSUF Quad');
+      if (this.map) this.map.setView([33.8813, -117.8854], 16);
+    }
+  }
+
+  initUserLocationState() {
+    let storedAnalysis = null;
+    let storedUser = null;
+    try {
+      const rawA = localStorage.getItem('safepath_location_analysis');
+      if (rawA) storedAnalysis = JSON.parse(rawA);
+      const rawU = localStorage.getItem('safepath_user');
+      if (rawU) storedUser = JSON.parse(rawU);
+    } catch (e) {}
+
+    const initialData = {
+      latitude: this.userLat,
+      longitude: this.userLng,
+      locationName: (storedAnalysis && storedAnalysis.currentLocation && storedAnalysis.currentLocation.locationName) || (storedUser && storedUser.locationName),
+      isMockLocation: (storedAnalysis && storedAnalysis.isMockLocation) || (storedUser && storedUser.isMockLocation) || false,
+      mockSource: (storedAnalysis && storedAnalysis.mockSource) || (storedUser && storedUser.mockSource) || null,
+      lastLoginLocation: (storedAnalysis && storedAnalysis.lastLoginLocation) || (storedUser && storedUser.lastLoginLocation) || null,
+      distanceFromLastLoginMeters: (storedAnalysis && storedAnalysis.distanceFromLastLoginMeters) !== undefined ? storedAnalysis.distanceFromLastLoginMeters : (storedUser && storedUser.distanceFromLastLoginMeters)
+    };
+
+    this.updateLocationWidgets(initialData);
+
+    // If live browser GPS is available and not in mock state, verify and center on real location
+    if (navigator.geolocation && !initialData.isMockLocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          this.setUserLocation(pos.coords.latitude, pos.coords.longitude, undefined, undefined, undefined, false, 'Browser GPS');
+          if (this.map) {
+            this.map.setView([pos.coords.latitude, pos.coords.longitude], 16);
+          }
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 6000, maximumAge: 10000 }
+      );
+    }
+  }
+
+  updateLocationWidgets(data) {
+    if (!data) return;
+    const titleElem = document.getElementById('loc-current-title');
+    const coordsElem = document.getElementById('loc-current-coords');
+    const badgeElem = document.getElementById('loc-mock-badge');
+    const lastLoginElem = document.getElementById('loc-last-login-title');
+    const distJumpElem = document.getElementById('loc-distance-jump');
+    const mockWarningElem = document.getElementById('loc-mock-warning');
+
+    const lat = data.latitude !== undefined ? data.latitude : this.userLat;
+    const lng = data.longitude !== undefined ? data.longitude : this.userLng;
+
+    if (coordsElem && lat !== undefined && lng !== undefined) {
+      coordsElem.textContent = `${parseFloat(lat).toFixed(5)}, ${parseFloat(lng).toFixed(5)}`;
+    }
+
+    if (titleElem && lat !== undefined && lng !== undefined) {
+      if (data.locationName && !data.locationName.startsWith('Off-Campus')) {
+        titleElem.textContent = data.locationName;
+      } else {
+        const distFromQuad = this.calculateDistanceMeters(lat, lng, 33.8823, -117.8851);
+        if (distFromQuad > 800) {
+          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, {
+            headers: { 'User-Agent': 'SafePathWeb/1.0' }
+          }).then(r => r.json()).then(geo => {
+            const addr = geo.address || {};
+            const road = addr.road || addr.pedestrian || addr.street || addr.residential || addr.neighbourhood || addr.suburb || '';
+            const city = addr.city || addr.town || addr.municipality || '';
+            const place = road && city ? `${road}, ${city}` : (road || city || 'Off-Campus');
+            titleElem.textContent = `📍 ${place} (~${(distFromQuad / 1000).toFixed(1)} km from CSUF)`;
+          }).catch(() => {
+            titleElem.textContent = data.locationName || `Location (${parseFloat(lat).toFixed(4)}, ${parseFloat(lng).toFixed(4)})`;
+          });
+        } else {
+          titleElem.textContent = data.locationName || `CSU Fullerton Campus`;
+        }
+      }
+    }
+
+    if (badgeElem) {
+      if (data.isMockLocation) {
+        badgeElem.textContent = '⚠️ MOCK LOCATION ACTIVE';
+        badgeElem.style.background = '#fef3c7';
+        badgeElem.style.color = '#b45309';
+        badgeElem.style.border = '1px solid #fde68a';
+      } else {
+        badgeElem.textContent = '🟢 REAL GPS ACTIVE';
+        badgeElem.style.background = '#dcfce7';
+        badgeElem.style.color = '#15803d';
+        badgeElem.style.border = '1px solid #bbf7d0';
+      }
+    }
+
+    if (mockWarningElem) {
+      if (data.isMockLocation) {
+        mockWarningElem.style.display = 'block';
+        mockWarningElem.innerHTML = `⚠️ <strong>Mock Location Active:</strong> Position simulated via ${data.mockSource || 'Mock Provider'}. Campus emergency routing recalculates around this position.`;
+      } else {
+        mockWarningElem.style.display = 'none';
+      }
+    }
+
+    if (lastLoginElem) {
+      if (data.lastLoginLocation) {
+        const lastPlace = data.lastLoginLocation.locationName || `${parseFloat(data.lastLoginLocation.latitude).toFixed(4)}, ${parseFloat(data.lastLoginLocation.longitude).toFixed(4)}`;
+        lastLoginElem.textContent = lastPlace;
+      } else {
+        lastLoginElem.textContent = 'Initial Login Session';
+      }
+    }
+
+    if (distJumpElem) {
+      if (data.distanceFromLastLoginMeters !== undefined) {
+        distJumpElem.textContent = `(${data.distanceFromLastLoginMeters}m from login)`;
+      } else {
+        distJumpElem.textContent = '(0m from login)';
+      }
     }
   }
 
@@ -1448,6 +1636,20 @@ class SafePathEngine {
             }
           }
 
+          let mockBadge = '';
+          if (u.isMockLocation) {
+            mockBadge = `<span class="badge" style="background:#fef3c7; color:#b45309; font-size:10px; padding:2px 6px; border:1px solid #fde68a;" title="${u.mockSource || 'Mock Location'}">⚠️ MOCK</span>`;
+          } else {
+            mockBadge = `<span class="badge" style="background:#dcfce7; color:#15803d; font-size:10px; padding:2px 6px; border:1px solid #bbf7d0;">🟢 GPS</span>`;
+          }
+
+          let lastLoginInfo = '';
+          if (u.lastLoginLocation) {
+            const lastPlace = u.lastLoginLocation.locationName || `${parseFloat(u.lastLoginLocation.latitude).toFixed(3)}, ${parseFloat(u.lastLoginLocation.longitude).toFixed(3)}`;
+            const jumpDist = u.distanceFromLastLoginMeters !== undefined ? `${u.distanceFromLastLoginMeters}m from login` : '0m';
+            lastLoginInfo = `<div style="font-size:11px; color:#64748b; margin-top:3px;">🕰️ Last login: <strong style="color:#334155;">${lastPlace}</strong> (${jumpDist})</div>`;
+          }
+
           return `
             <tr>
               <td class="student-swipe-cell">
@@ -1466,7 +1668,14 @@ class SafePathEngine {
                   </div>
                 </div>
               </td>
-              <td><code>${parseFloat(u.latitude).toFixed(4)}, ${parseFloat(u.longitude).toFixed(4)}</code></td>
+              <td>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <code style="font-weight:700;">${parseFloat(u.latitude).toFixed(4)}, ${parseFloat(u.longitude).toFixed(4)}</code>
+                  ${mockBadge}
+                </div>
+                <div style="font-size:11px; color:#1e293b; font-weight:600; margin-top:2px;">📍 ${u.locationName || 'Campus'}</div>
+                ${lastLoginInfo}
+              </td>
               <td>
                 <span class="badge ${u.status === 'IN HAZARD' ? 'badge-danger' : (u.status === 'PROXIMITY WARNING' ? 'badge-warning' : 'badge-success')}">
                   ${u.status}
@@ -1598,8 +1807,9 @@ class SafePathEngine {
       const emailAliases = {
         'daniel.wu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
         'd.wu@csu.fullerton.edu': 'daniel.wu@csu.fullerton.edu',
+        'johanliman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
         'johan.liman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
-        'johaliman@csu.fullerton.edu': 'johan.liman@csu.fullerton.edu',
+        'johaliman@csu.fullerton.edu': 'johanliman@csu.fullerton.edu',
         'jie.chen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
         'jchen102951@csu.fullerton.edu': 'jie.chen@csu.fullerton.edu',
         'yu.chang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
@@ -1763,6 +1973,11 @@ class SafePathEngine {
           st.lat = parseFloat(u.latitude);
           st.lng = parseFloat(u.longitude);
           st.status = u.status;
+          st.isMockLocation = Boolean(u.isMockLocation);
+          st.mockSource = u.mockSource;
+          st.locationName = u.locationName;
+          st.lastLoginLocation = u.lastLoginLocation;
+          st.distanceFromLastLoginMeters = u.distanceFromLastLoginMeters;
           if (u.distanceMeters !== undefined) st.distanceMeters = u.distanceMeters;
           if (u.estMinutes !== undefined) st.estMinutes = u.estMinutes;
           if (u.targetHaven !== undefined) st.targetHaven = u.targetHaven;
@@ -1770,6 +1985,12 @@ class SafePathEngine {
         if (this.role === 'user' && this.userEmail === u.email) {
           this.userLat = parseFloat(u.latitude);
           this.userLng = parseFloat(u.longitude);
+          this.isMockLocation = Boolean(u.isMockLocation);
+          this.mockSource = u.mockSource;
+          this.locationName = u.locationName;
+          this.lastLoginLocation = u.lastLoginLocation;
+          this.distanceFromLastLoginMeters = u.distanceFromLastLoginMeters;
+          this.updateLocationWidgets(u);
         }
         this.renderAllStudentsOnMap();
         if (this.role === 'admin' || this.role === 'demo') {

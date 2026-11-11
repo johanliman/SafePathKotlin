@@ -197,12 +197,15 @@ class MainActivity : AppCompatActivity() {
         pathfinder = SafeRoutePathfinder(walkwayNodes, walkwayEdges, safeZones)
 
         loggedRole = intent.getStringExtra(EXTRA_ROLE) ?: "Student"
-        loggedEmail = intent.getStringExtra(EXTRA_EMAIL) ?: "johaliman@csu.fullerton.edu"
+        loggedEmail = intent.getStringExtra(EXTRA_EMAIL) ?: "johanliman@csu.fullerton.edu"
         loggedName = intent.getStringExtra(EXTRA_NAME) ?: "Johan"
         loggedLat = intent.getDoubleExtra(EXTRA_LAT, 33.8802)
         loggedLng = intent.getDoubleExtra(EXTRA_LNG, -117.8858)
 
-        val existingIndex = students.indexOfFirst { it.email.equals(loggedEmail, ignoreCase = true) }
+        val existingIndex = students.indexOfFirst {
+            it.email.equals(loggedEmail, ignoreCase = true) ||
+            (loggedEmail.contains("johan", ignoreCase = true) && it.email.contains("joha", ignoreCase = true))
+        }
         if (existingIndex != -1) {
             activeStudentIndex = existingIndex
             students[existingIndex].lat = loggedLat
@@ -591,6 +594,8 @@ class MainActivity : AppCompatActivity() {
                 super.onPageFinished(view, url)
                 isMapLoaded = true
                 refreshMapDisplay()
+                val active = students[activeStudentIndex]
+                mapWebView.evaluateJavascript("centerMap(${active.lat}, ${active.lng}, 16);", null)
             }
         }
 
@@ -1114,7 +1119,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startLocationService() {
-        val intent = Intent(this, LocationTrackingService::class.java)
+        val intent = Intent(this, LocationTrackingService::class.java).apply {
+            putExtra("extra_user_email", loggedEmail)
+        }
         ContextCompat.startForegroundService(this, intent)
     }
 

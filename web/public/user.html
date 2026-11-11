@@ -273,12 +273,62 @@
       <div style="display:flex; align-items:center; gap:8px;">
         <span class="badge badge-success" id="pill-hazard-status">SAFE</span>
       </div>
+    <!-- REAL-TIME LOCATION INTELLIGENCE & MOCK VERIFICATION CARD -->
+    <div class="card" style="padding: 14px 18px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div style="flex: 1; min-width: 280px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <span id="loc-status-icon" style="font-size: 1.2rem;">📍</span>
+            <strong id="loc-current-title" style="font-size: 1.05rem; color: #0f172a;">Detecting Current Location...</strong>
+            <span id="loc-mock-badge" class="badge" style="background:#e0f2fe; color:#0369a1; font-size:0.75rem; padding:3px 8px;">GPS Active</span>
+          </div>
+          <div style="font-size: 0.83rem; color: #475569; display: flex; flex-wrap: wrap; gap: 14px; margin-top: 4px;">
+            <span>📍 Coordinates: <code id="loc-current-coords" style="color:#0f172a; font-weight:600;">33.88XX, -117.88XX</code></span>
+            <span>🕰️ Last Login Location: <strong id="loc-last-login-title" style="color:#0f172a;">Detecting...</strong> <span id="loc-distance-jump" style="color:#64748b;">(0m from login)</span></span>
+          </div>
+          <div id="loc-mock-warning" style="display:none; margin-top: 8px; font-size: 0.8rem; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 6px 10px; border-radius: 6px;">
+            ⚠️ <strong>Mock Location Active:</strong> You have simulated your coordinates to another place. The server has detected this mock location and updated safe evacuation routing accordingly.
+          </div>
+        </div>
+
+        <!-- Mock Location Simulator Controls -->
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <label style="font-size: 0.72rem; font-weight: 700; color: #475569; text-transform: uppercase;">Mock Location / Teleport:</label>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <select id="user-teleport-select" class="form-control" style="font-size: 0.82rem; padding: 5px 8px; width: 220px;" onchange="window.onTeleportSelect(this.value)">
+                <option value="">-- Teleport to Another Place --</option>
+                <option value="B1">Pollak Library (B1)</option>
+                <option value="B2">McCarthy Science Hall (B2)</option>
+                <option value="B3">Titan Student Union (B3)</option>
+                <option value="B4">Engineering & CS (B4)</option>
+                <option value="B5">Student Residence Halls (B5)</option>
+                <option value="B6">Titan Athletics Stadium (B6)</option>
+                <option value="B7">Humanities & Social Sciences (B7)</option>
+                <option value="B8">Campus Health Center (B8)</option>
+                <option value="B9">University Police Dept (B9)</option>
+                <option value="B10">Visual Arts Complex (B10)</option>
+                <option value="SZ1">North Quad Safe Haven (SZ1)</option>
+                <option value="SZ2">East Campus Safe Haven (SZ2)</option>
+                <option value="SZ3">West Athletics Shelter (SZ3)</option>
+                <option value="SZ4">South Gate Plaza (SZ4)</option>
+              </select>
+              <button type="button" class="btn btn-secondary" onclick="window.resetToRealGps()" style="font-size: 0.8rem; padding: 6px 12px;" title="Reset to device GPS or last login location">
+                🔄 Real GPS
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- STUDENT MAP VIEW WITH GOOGLE MAPS NAVIGATION OVERLAY (MAP FIRST) -->
     <div class="card" style="padding: 12px; background:#ffffff; margin-bottom: 16px;">
       <div id="user-map-container" style="position:relative; height: 560px; border-radius: 8px; overflow: hidden;">
         <div id="user-map" class="map-container" style="width: 100%; height: 100%; border-radius: 8px;"></div>
+
+        <!-- Floating Center on My Real Location Button -->
+        <button type="button" onclick="window.resetToRealGps()" title="Center on My Real Location" style="position:absolute; right:14px; bottom:24px; z-index:1000; box-shadow:0 2px 10px rgba(0,0,0,0.25); width:42px; height:42px; border-radius:50%; background:#ffffff; border:1.5px solid #121212; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:1.25rem;">🎯</button>
 
         <!-- Google Maps Turn-by-Turn Navigation HUD Overlay -->
         <div id="gmaps-nav-overlay" class="gmaps-nav-overlay">
@@ -425,7 +475,7 @@
     // Default to Johan if none stored yet
     if (!loggedUser || !loggedUser.email) {
       loggedUser = {
-        email: "johaliman@csu.fullerton.edu",
+        email: "johanliman@csu.fullerton.edu",
         name: "Johan",
         role: "Student",
         latitude: 33.8802,
@@ -463,10 +513,21 @@
       }
     }
 
+    window.onTeleportSelect = function(buildingId) {
+      if (!buildingId || !window.safePathApp) return;
+      window.safePathApp.teleportToBuilding(buildingId);
+    };
+
+    window.resetToRealGps = function() {
+      if (!window.safePathApp) return;
+      window.safePathApp.resetToRealGps();
+    };
+
     function handleLogout() {
       localStorage.removeItem('safepath_user');
       localStorage.removeItem('safepath_user_email');
       localStorage.removeItem('safepath_role');
+      localStorage.removeItem('safepath_location_analysis');
       window.location.href = '/login.html';
     }
   </script>

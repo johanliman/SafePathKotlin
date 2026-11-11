@@ -21,53 +21,9 @@ try {
 let activeAlerts = [];
 let alertHistory = [];
 
-// Connected / Registered Users Store with Pre-seeded Accounts
-let registeredUsers = new Map();
-
-function seedUser(email, password, name, role, lat, lng, isSimulated = true) {
-  const normEmail = email.trim().toLowerCase();
-  registeredUsers.set(normEmail, {
-    email: normEmail,
-    password: password,
-    name: name,
-    role: role,
-    latitude: lat,
-    longitude: lng,
-    accuracy: 4.5,
-    networkState: "WiFi",
-    batteryLevel: 94,
-    lastPing: Date.now(),
-    isSimulated: isSimulated,
-    status: "NORMAL"
-  });
-}
-
-// 1. Admin
-seedUser("admin@safepath.com", "admin", "Campus Admin", "Admin", 33.8820, -117.8850, false);
-
-// 2. The 5 Students specified by user
-seedUser("johaliman@csu.fullerton.edu", "johanliman", "Johan", "Student", 33.8802, -117.8858);
-seedUser("d.wu@csu.fullerton.edu", "danielwu", "Daniel", "Student", 33.8813, -117.8854);
-seedUser("yu-cheng.chang@csu.fullerton.edu", "yuchengchang", "Yu", "Student", 33.8820, -117.8885);
-seedUser("jchen102951@csu.fullerton.edu", "jiechen", "Jie", "Student", 33.8829, -117.8828);
-seedUser("siling313@csu.fullerton.edu", "siling", "Siling", "Student", 33.8835, -117.8870);
-
-// SSE Subscribers (Real-time alert dispatch to web browsers & mobile clients)
-const sseClients = new Set();
-
-function broadcastSSE(eventType, data) {
-  const payload = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
-  for (const client of sseClients) {
-    try {
-      client.res.write(payload);
-    } catch (err) {
-      sseClients.delete(client);
-    }
-  }
-}
-
 // Distance Calculation (Haversine in meters)
 function getDistanceMeters(lat1, lon1, lat2, lon2) {
+  if (lat1 === undefined || lon1 === undefined || lat2 === undefined || lon2 === undefined) return 0;
   const R = 6371e3; // Earth radius in meters
   const phi1 = (lat1 * Math.PI) / 180;
   const phi2 = (lat2 * Math.PI) / 180;
@@ -81,6 +37,258 @@ function getDistanceMeters(lat1, lon1, lat2, lon2) {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return R * c;
+}
+
+// Landmark & Campus Geocoding Resolver (CSU Fullerton Buildings & Safe Havens)
+const geocodeCache = new Map();
+
+async function reverseGeocodeOffCampus(lat, lng) {
+  if (lat === undefined || lng === undefined || isNaN(lat) || isNaN(lng)) return null;
+  const numLat = Number(lat);
+  const numLng = Number(lng);
+  const cacheKey = `${numLat.toFixed(4)},${numLng.toFixed(4)}`;
+  if (geocodeCache.has(cacheKey)) {
+    return geocodeCache.get(cacheKey);
+  }
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2000);
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${numLat}&lon=${numLng}&format=json`;
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'SafePathCampusSafety/1.0 (csuf-cpsc515)' }
+    });
+    clearTimeout(timeout);
+    if (res.ok) {
+      const data = await res.json();
+      const addr = data.address || {};
+      const road = addr.road || addr.pedestrian || addr.street || addr.residential || addr.neighbourhood || addr.suburb || '';
+      const city = addr.city || addr.town || addr.municipality || addr.village || addr.county || '';
+      if (road || city) {
+        const placeName = road && city ? `${road}, ${city}` : (road || city);
+        geocodeCache.set(cacheKey, placeName);
+        return placeName;
+      }
+    }
+  } catch (err) {
+    // Ignore timeout or network failure
+  }
+  return null;
+}
+
+function resolveLocationName(lat, lng) {
+  if (lat === undefined || lng === undefined || isNaN(lat) || isNaN(lng)) {
+    return 'Unknown Location';
+  }
+
+  const numLat = Number(lat);
+  const numLng = Number(lng);
+
+  const candidates = [];
+  if (campusData && campusData.buildings) {
+    for (const b of campusData.buildings) {
+      const d = getDistanceMeters(numLat, numLng, b.lat, b.lng);
+      candidates.push({ name: b.name, dist: d });
+    }
+  }
+  if (campusData && campusData.safeZones) {
+    for (const sz of campusData.safeZones) {
+      const d = getDistanceMeters(numLat, numLng, sz.lat, sz.lng);
+      candidates.push({ name: sz.name, dist: d });
+    }
+  }
+
+  candidates.sort((a, b) => a.dist - b.dist);
+
+  if (candidates.length > 0) {
+    const closest = candidates[0];
+    if (closest.dist <= 75) {
+      return `At ${closest.name}`;
+    }
+    if (closest.dist <= 180) {
+      return `Near ${closest.name} (~${Math.round(closest.dist)}m)`;
+    }
+  }
+
+  // Campus Center fallback check
+  const campusCenter = (campusData && campusData.campus && campusData.campus.center) || { lat: 33.8823, lng: -117.8851 };
+  const distCenter = getDistanceMeters(numLat, numLng, campusCenter.lat, campusCenter.lng);
+  if (distCenter <= 800) {
+    return `CSU Fullerton Campus (~${Math.round(distCenter)}m from Quad)`;
+  }
+
+  // Check geocode cache for reverse-geocoded real address
+  const cacheKey = `${numLat.toFixed(4)},${numLng.toFixed(4)}`;
+  const cachedPlace = geocodeCache.get(cacheKey);
+  if (cachedPlace) {
+    return `${cachedPlace} (~${(distCenter / 1000).toFixed(1)} km from CSUF)`;
+  }
+
+  // Trigger background geocode fetch if not yet in cache
+  reverseGeocodeOffCampus(numLat, numLng).catch(() => {});
+
+  return `Off-Campus (${(distCenter / 1000).toFixed(1)} km from Campus)`;
+}
+
+// Location Verification & Mock Detection Algorithm
+function analyzeLocationChange(user, newLat, newLng, isClientMock = false, mockSource = null, accuracy = 4.5) {
+  const now = Date.now();
+  const newLocationName = resolveLocationName(newLat, newLng);
+
+  // Retrieve previous known location / last login location
+  const prevLoc = user.lastLoginLocation || (user.latitude && user.longitude ? {
+    latitude: user.latitude,
+    longitude: user.longitude,
+    timestamp: user.lastPing || (now - 3600000 * 2), // Default 2 hours ago baseline
+    locationName: user.locationName || resolveLocationName(user.latitude, user.longitude),
+    isMock: Boolean(user.isMockLocation)
+  } : null);
+
+  let analysis = {
+    hasPreviousLogin: false,
+    lastLoginLocation: null,
+    distanceFromLastLoginMeters: 0,
+    timeElapsedSeconds: 0,
+    speedMps: 0,
+    speedKmh: 0,
+    isMockLocation: Boolean(isClientMock),
+    mockSource: mockSource || (isClientMock ? 'Simulated Location Provider' : null),
+    mockReason: null,
+    status: 'NORMAL',
+    currentLocation: {
+      latitude: newLat,
+      longitude: newLng,
+      accuracy: accuracy,
+      locationName: newLocationName,
+      timestamp: now,
+      isMock: Boolean(isClientMock)
+    }
+  };
+
+  if (prevLoc) {
+    analysis.hasPreviousLogin = true;
+    analysis.lastLoginLocation = {
+      latitude: prevLoc.latitude,
+      longitude: prevLoc.longitude,
+      timestamp: prevLoc.timestamp,
+      locationName: prevLoc.locationName || resolveLocationName(prevLoc.latitude, prevLoc.longitude),
+      isMock: Boolean(prevLoc.isMock)
+    };
+
+    const distM = getDistanceMeters(prevLoc.latitude, prevLoc.longitude, newLat, newLng);
+    const timeDeltaSec = Math.max(1, Math.round((now - prevLoc.timestamp) / 1000));
+    const speedMps = distM / timeDeltaSec;
+    const speedKmh = speedMps * 3.6;
+
+    analysis.distanceFromLastLoginMeters = Math.round(distM);
+    analysis.timeElapsedSeconds = timeDeltaSec;
+    analysis.speedMps = parseFloat(speedMps.toFixed(2));
+    analysis.speedKmh = parseFloat(speedKmh.toFixed(1));
+
+    // Teleport / Mock detection heuristics:
+    // Speeds > 50 m/s (~180 km/h) over a distance jump > 120m indicate teleportation / mock location
+    if (speedMps > 50 && distM > 120) {
+      analysis.isMockLocation = true;
+      analysis.mockSource = analysis.mockSource || 'Velocity Jump / Teleportation';
+      analysis.mockReason = `Impossible velocity (${Math.round(speedKmh)} km/h across ${Math.round(distM)}m in ${timeDeltaSec}s) - Teleportation Mock Detected`;
+      analysis.status = 'MOCK_DETECTED';
+    } else if (isClientMock) {
+      analysis.isMockLocation = true;
+      analysis.mockSource = mockSource || 'Client Mock Provider';
+      analysis.mockReason = `Mock location active (${mockSource || 'Pin drag/teleport'})`;
+      analysis.status = 'MOCK_REPORTED';
+    } else if (distM > 500) {
+      analysis.status = 'RELOCATED';
+    } else {
+      analysis.status = 'VERIFIED_LOCATION';
+    }
+  } else {
+    if (isClientMock) {
+      analysis.isMockLocation = true;
+      analysis.mockSource = mockSource || 'Client Mock Provider';
+      analysis.mockReason = 'Initial login with mock location';
+      analysis.status = 'MOCK_REPORTED';
+    } else {
+      analysis.status = 'INITIAL_VERIFIED';
+    }
+  }
+
+  analysis.currentLocation.isMock = analysis.isMockLocation;
+  return analysis;
+}
+
+// Connected / Registered Users Store with Pre-seeded Accounts
+let registeredUsers = new Map();
+
+function seedUser(email, password, name, role, lat, lng, isSimulated = false) {
+  const normEmail = email.trim().toLowerCase();
+  const locName = resolveLocationName(lat, lng);
+  const baselineTime = Date.now() - 3600000 * 2; // 2 hours prior as baseline
+  registeredUsers.set(normEmail, {
+    email: normEmail,
+    password: password,
+    name: name,
+    role: role,
+    latitude: lat,
+    longitude: lng,
+    accuracy: 4.5,
+    networkState: "WiFi",
+    batteryLevel: 94,
+    lastPing: Date.now(),
+    isSimulated: isSimulated,
+    isMockLocation: false,
+    mockSource: null,
+    mockReason: null,
+    locationName: locName,
+    lastLoginLocation: {
+      latitude: lat,
+      longitude: lng,
+      timestamp: baselineTime,
+      locationName: locName,
+      isMock: false
+    },
+    loginHistory: [{
+      timestamp: baselineTime,
+      latitude: lat,
+      longitude: lng,
+      locationName: locName,
+      isMock: false,
+      distanceMovedMeters: 0,
+      speedMps: 0,
+      status: 'INITIAL_VERIFIED'
+    }],
+    status: "NORMAL"
+  });
+}
+
+// 1. Admin
+seedUser("admin@safepath.com", "admin", "Campus Admin", "Admin", 33.8820, -117.8850, false);
+
+// 2. The 5 Students specified by user
+seedUser("johaliman@csu.fullerton.edu", "johanliman", "Johan", "Student", 33.8802, -117.8858);
+const johanUserRef = registeredUsers.get("johaliman@csu.fullerton.edu");
+registeredUsers.set("johanliman@csu.fullerton.edu", johanUserRef);
+registeredUsers.set("johan.liman@csu.fullerton.edu", johanUserRef);
+seedUser("d.wu@csu.fullerton.edu", "danielwu", "Daniel", "Student", 33.8813, -117.8854);
+registeredUsers.set("daniel.wu@csu.fullerton.edu", registeredUsers.get("d.wu@csu.fullerton.edu"));
+seedUser("yu-cheng.chang@csu.fullerton.edu", "yuchengchang", "Yu", "Student", 33.8820, -117.8885);
+seedUser("jchen102951@csu.fullerton.edu", "jiechen", "Jie", "Student", 33.8829, -117.8828);
+registeredUsers.set("jie.chen@csu.fullerton.edu", registeredUsers.get("jchen102951@csu.fullerton.edu"));
+seedUser("siling313@csu.fullerton.edu", "siling", "Siling", "Student", 33.8835, -117.8870);
+registeredUsers.set("siling.liu@csu.fullerton.edu", registeredUsers.get("siling313@csu.fullerton.edu"));
+
+// SSE Subscribers (Real-time alert dispatch to web browsers & mobile clients)
+const sseClients = new Set();
+
+function broadcastSSE(eventType, data) {
+  const payload = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
+  for (const client of sseClients) {
+    try {
+      client.res.write(payload);
+    } catch (err) {
+      sseClients.delete(client);
+    }
+  }
 }
 
 // Helper: Parse JSON Body
@@ -326,10 +534,16 @@ const server = http.createServer(async (req, res) => {
 
       const emailAliases = {
         'johan.liman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
+        'johanliman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
+        'johanliman': 'johaliman@csu.fullerton.edu',
         'daniel.wu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
+        'danielwu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
         'jie.chen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
+        'jiechen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
         'yucheng.chang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
-        'siling.liu@csu.fullerton.edu': 'siling313@csu.fullerton.edu'
+        'yuchengchang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
+        'siling.liu@csu.fullerton.edu': 'siling313@csu.fullerton.edu',
+        'silingliu@csu.fullerton.edu': 'siling313@csu.fullerton.edu'
       };
       const email = emailAliases[rawEmail] || rawEmail;
 
@@ -352,11 +566,59 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      user.lastPing = Date.now();
-      if (data.latitude && data.longitude) {
-        user.latitude = parseFloat(data.latitude);
-        user.longitude = parseFloat(data.longitude);
+      const now = Date.now();
+      const clientLat = (data.latitude !== undefined && data.latitude !== null && data.latitude !== '') ? parseFloat(data.latitude) : null;
+      const clientLng = (data.longitude !== undefined && data.longitude !== null && data.longitude !== '') ? parseFloat(data.longitude) : null;
+      const isClientMock = Boolean(data.isMock || data.isSimulated);
+      const mockSource = data.mockSource || null;
+      const accuracy = data.accuracy ? parseFloat(data.accuracy) : 4.5;
+
+      // Determine login location (Real detected coordinates or current user coordinates)
+      const lat = clientLat !== null ? clientLat : user.latitude;
+      const lng = clientLng !== null ? clientLng : user.longitude;
+
+      // Reverse geocode real location if outside campus
+      if (clientLat !== null && clientLng !== null) {
+        await reverseGeocodeOffCampus(lat, lng);
       }
+
+      // Run algorithm: check last login location vs new detected location & detect mock/teleport
+      const locationAnalysis = analyzeLocationChange(user, lat, lng, isClientMock, mockSource, accuracy);
+
+      // Preserve previous location as lastLoginLocation before updating to current
+      if (!user.lastLoginLocation) {
+        user.lastLoginLocation = {
+          latitude: user.latitude,
+          longitude: user.longitude,
+          timestamp: user.lastPing || (now - 3600000 * 2),
+          locationName: resolveLocationName(user.latitude, user.longitude),
+          isMock: Boolean(user.isMockLocation)
+        };
+      }
+
+      // Update user current coordinates and state
+      user.lastPing = now;
+      user.latitude = lat;
+      user.longitude = lng;
+      user.accuracy = accuracy;
+      user.locationName = locationAnalysis.currentLocation.locationName;
+      user.isMockLocation = locationAnalysis.isMockLocation;
+      user.mockSource = locationAnalysis.mockSource;
+      user.mockReason = locationAnalysis.mockReason;
+      user.lastLoginAnalysis = locationAnalysis;
+
+      if (!user.loginHistory) user.loginHistory = [];
+      user.loginHistory.unshift({
+        timestamp: now,
+        latitude: lat,
+        longitude: lng,
+        locationName: user.locationName,
+        isMock: user.isMockLocation,
+        distanceMovedMeters: locationAnalysis.distanceFromLastLoginMeters,
+        speedMps: locationAnalysis.speedMps,
+        status: locationAnalysis.status
+      });
+      if (user.loginHistory.length > 20) user.loginHistory.pop();
 
       // Proximity check against active alerts
       let userAlerts = [];
@@ -368,6 +630,24 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
+      // Notify SSE admin map and listeners of new login location & mock status
+      broadcastSSE('user_location_update', {
+        email: user.email,
+        name: user.name,
+        latitude: user.latitude,
+        longitude: user.longitude,
+        accuracy: user.accuracy,
+        status: user.status,
+        batteryLevel: user.batteryLevel,
+        networkState: user.networkState,
+        lastPing: user.lastPing,
+        isMockLocation: user.isMockLocation,
+        mockSource: user.mockSource,
+        locationName: user.locationName,
+        lastLoginLocation: user.lastLoginLocation,
+        distanceFromLastLoginMeters: locationAnalysis.distanceFromLastLoginMeters
+      });
+
       const safeUser = { ...user };
       delete safeUser.password;
 
@@ -375,6 +655,8 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({
         success: true,
         user: safeUser,
+        locationAnalysis,
+        lastLoginLocation: user.lastLoginLocation,
         activeAlertsCount: activeAlerts.length,
         nearbyAlerts: userAlerts
       }));
@@ -534,7 +816,21 @@ const server = http.createServer(async (req, res) => {
   if (method === 'POST' && pathname === '/api/users/location') {
     try {
       const data = await parseBody(req);
-      const email = (data.email || '').trim().toLowerCase();
+      const rawEmail = (data.email || '').trim().toLowerCase();
+      const emailAliases = {
+        'johan.liman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
+        'johanliman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
+        'johanliman': 'johaliman@csu.fullerton.edu',
+        'daniel.wu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
+        'danielwu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
+        'jie.chen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
+        'jiechen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
+        'yucheng.chang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
+        'yuchengchang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
+        'siling.liu@csu.fullerton.edu': 'siling313@csu.fullerton.edu',
+        'silingliu@csu.fullerton.edu': 'siling313@csu.fullerton.edu'
+      };
+      const email = emailAliases[rawEmail] || rawEmail;
       if (!email) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'User email is required' }));
@@ -542,28 +838,88 @@ const server = http.createServer(async (req, res) => {
       }
 
       let user = registeredUsers.get(email);
+      const newLat = parseFloat(data.latitude);
+      const newLng = parseFloat(data.longitude);
+      const accuracy = parseFloat(data.accuracy || 5.0);
+      const isClientMock = Boolean(data.isMock || data.isSimulated);
+      const mockSource = data.mockSource || null;
+      const now = Date.now();
+
+      if (!isNaN(newLat) && !isNaN(newLng)) {
+        await reverseGeocodeOffCampus(newLat, newLng);
+      }
+
       if (!user) {
+        const locName = resolveLocationName(newLat, newLng);
         user = {
           email,
           name: email.split('@')[0],
           role: 'Student',
-          latitude: parseFloat(data.latitude),
-          longitude: parseFloat(data.longitude),
-          accuracy: parseFloat(data.accuracy || 5.0),
+          latitude: newLat,
+          longitude: newLng,
+          accuracy: accuracy,
           networkState: data.networkState || 'WiFi',
           batteryLevel: data.batteryLevel !== undefined ? data.batteryLevel : 90,
-          lastPing: Date.now(),
-          isSimulated: false,
+          lastPing: now,
+          isSimulated: isClientMock,
+          isMockLocation: isClientMock,
+          mockSource: mockSource || (isClientMock ? 'Simulated Location Provider' : null),
+          locationName: locName,
+          lastLoginLocation: {
+            latitude: newLat,
+            longitude: newLng,
+            timestamp: now,
+            locationName: locName,
+            isMock: isClientMock
+          },
           status: 'NORMAL'
         };
         registeredUsers.set(email, user);
       } else {
-        user.latitude = parseFloat(data.latitude);
-        user.longitude = parseFloat(data.longitude);
-        user.accuracy = parseFloat(data.accuracy || user.accuracy);
+        // Algorithm: compare previous position to new position
+        const prevLat = user.latitude;
+        const prevLng = user.longitude;
+        const prevTime = user.lastPing || (now - 5000);
+        const distMoved = getDistanceMeters(prevLat, prevLng, newLat, newLng);
+        const timeElapsedSec = Math.max(1, Math.round((now - prevTime) / 1000));
+        const velocityMps = distMoved / timeElapsedSec;
+
+        let isMock = isClientMock;
+        let reason = mockSource;
+
+        // Teleportation detection heuristic: velocity > 50 m/s (180 km/h) over > 100 meters
+        if (velocityMps > 50 && distMoved > 100) {
+          isMock = true;
+          reason = `Velocity jump (${Math.round(velocityMps * 3.6)} km/h across ${Math.round(distMoved)}m in ${timeElapsedSec}s) - Teleported Mock`;
+        }
+
+        user.latitude = newLat;
+        user.longitude = newLng;
+        user.accuracy = accuracy;
+        user.locationName = resolveLocationName(newLat, newLng);
+        user.isMockLocation = isMock;
+        user.mockSource = reason || (isMock ? 'Mock Location' : null);
         if (data.networkState) user.networkState = data.networkState;
         if (data.batteryLevel !== undefined) user.batteryLevel = data.batteryLevel;
-        user.lastPing = Date.now();
+        user.lastPing = now;
+
+        // Ensure lastLoginLocation exists
+        if (!user.lastLoginLocation) {
+          user.lastLoginLocation = {
+            latitude: prevLat,
+            longitude: prevLng,
+            timestamp: prevTime,
+            locationName: resolveLocationName(prevLat, prevLng),
+            isMock: Boolean(user.isMockLocation)
+          };
+        }
+
+        user.distanceFromLastLoginMeters = Math.round(getDistanceMeters(
+          user.lastLoginLocation.latitude,
+          user.lastLoginLocation.longitude,
+          newLat,
+          newLng
+        ));
       }
 
       if (data.distanceMeters !== undefined) user.distanceMeters = data.distanceMeters;
@@ -611,7 +967,12 @@ const server = http.createServer(async (req, res) => {
         distanceMeters: user.distanceMeters,
         estMinutes: user.estMinutes,
         targetHaven: user.targetHaven,
-        lastPing: user.lastPing
+        lastPing: user.lastPing,
+        isMockLocation: user.isMockLocation,
+        mockSource: user.mockSource,
+        locationName: user.locationName,
+        lastLoginLocation: user.lastLoginLocation,
+        distanceFromLastLoginMeters: user.distanceFromLastLoginMeters
       });
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -620,6 +981,11 @@ const server = http.createServer(async (req, res) => {
         status: user.status,
         distanceMeters: user.distanceMeters,
         estMinutes: user.estMinutes,
+        isMockLocation: user.isMockLocation,
+        mockSource: user.mockSource,
+        locationName: user.locationName,
+        lastLoginLocation: user.lastLoginLocation,
+        distanceFromLastLoginMeters: user.distanceFromLastLoginMeters,
         triggeredAlerts,
         serverTime: Date.now()
       }));
@@ -663,6 +1029,18 @@ const server = http.createServer(async (req, res) => {
         user.latitude = init.lat;
         user.longitude = init.lng;
         user.status = 'NORMAL';
+        user.isMockLocation = false;
+        user.mockSource = null;
+        user.mockReason = null;
+        user.locationName = resolveLocationName(init.lat, init.lng);
+        user.lastLoginLocation = {
+          latitude: init.lat,
+          longitude: init.lng,
+          timestamp: Date.now() - 3600000 * 2,
+          locationName: user.locationName,
+          isMock: false
+        };
+        user.distanceFromLastLoginMeters = 0;
         delete user.distanceMeters;
         delete user.estMinutes;
         delete user.targetHaven;
@@ -674,7 +1052,12 @@ const server = http.createServer(async (req, res) => {
           status: 'NORMAL',
           batteryLevel: user.batteryLevel,
           networkState: user.networkState,
-          lastPing: Date.now()
+          lastPing: Date.now(),
+          isMockLocation: false,
+          mockSource: null,
+          locationName: user.locationName,
+          lastLoginLocation: user.lastLoginLocation,
+          distanceFromLastLoginMeters: 0
         });
       }
     }

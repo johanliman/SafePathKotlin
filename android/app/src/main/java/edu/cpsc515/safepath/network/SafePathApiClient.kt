@@ -39,15 +39,35 @@ class SafePathApiClient(private val baseUrl: String = DEFAULT_BASE_URL) {
         val role: String = "Student",
         val latitude: Double = 33.8820,
         val longitude: Double = -117.8850,
+        val locationName: String = "",
+        val isMockLocation: Boolean = false,
+        val lastLoginLocationName: String = "",
+        val distanceFromLastLoginMeters: Int = 0,
         val message: String = ""
     )
 
-    suspend fun login(email: String, password: String): AuthResult = withContext(Dispatchers.IO) {
+    suspend fun login(
+        email: String,
+        password: String,
+        latitude: Double? = null,
+        longitude: Double? = null,
+        isMock: Boolean = false
+    ): AuthResult = withContext(Dispatchers.IO) {
         val normalized = email.trim().lowercase()
         val trimmedPw = password.trim()
 
         try {
-            val payload = mapOf("email" to normalized, "password" to trimmedPw)
+            val payload = mutableMapOf<String, Any>(
+                "email" to normalized,
+                "password" to trimmedPw
+            )
+            if (latitude != null && longitude != null) {
+                payload["latitude"] = latitude
+                payload["longitude"] = longitude
+                payload["isMock"] = isMock
+                payload["accuracy"] = 5.0
+            }
+
             val body = gson.toJson(payload).toRequestBody(jsonMediaType)
             val request = Request.Builder()
                 .url("$baseUrl/api/auth/login")
@@ -64,25 +84,47 @@ class SafePathApiClient(private val baseUrl: String = DEFAULT_BASE_URL) {
 
             val jsonObject = JsonParser.parseString(raw).asJsonObject
             val userObj = jsonObject.getAsJsonObject("user")
+            val locAnalysis = jsonObject.getAsJsonObject("locationAnalysis")
+            val lastLocObj = jsonObject.getAsJsonObject("lastLoginLocation")
+
+            val locName = userObj?.get("locationName")?.asString
+                ?: locAnalysis?.getAsJsonObject("currentLocation")?.get("locationName")?.asString
+                ?: "Campus"
+            val lastLocName = lastLocObj?.get("locationName")?.asString
+                ?: locAnalysis?.getAsJsonObject("lastLoginLocation")?.get("locationName")?.asString
+                ?: ""
+            val distJump = locAnalysis?.get("distanceFromLastLoginMeters")?.asInt
+                ?: userObj?.get("distanceFromLastLoginMeters")?.asInt
+                ?: 0
+            val mockActive = userObj?.get("isMockLocation")?.asBoolean
+                ?: locAnalysis?.get("isMockLocation")?.asBoolean
+                ?: isMock
+
             AuthResult(
                 success = true,
                 email = userObj?.get("email")?.asString ?: normalized,
                 name = userObj?.get("name")?.asString ?: normalized.substringBefore("@"),
                 role = userObj?.get("role")?.asString ?: (if (normalized.contains("admin")) "Admin" else "Student"),
-                latitude = userObj?.get("latitude")?.asDouble ?: 33.8820,
-                longitude = userObj?.get("longitude")?.asDouble ?: -117.8850
+                latitude = userObj?.get("latitude")?.asDouble ?: (latitude ?: 33.8820),
+                longitude = userObj?.get("longitude")?.asDouble ?: (longitude ?: -117.8850),
+                locationName = locName,
+                isMockLocation = mockActive,
+                lastLoginLocationName = lastLocName,
+                distanceFromLastLoginMeters = distJump,
+                message = "Authenticated successfully"
             )
         } catch (e: Exception) {
             // Seamless offline credential evaluation for demo reliability
             val seedCredentials = mapOf(
                 "admin@safepath.com" to Pair("admin", Triple("Campus Admin", "Admin", Pair(33.8820, -117.8850))),
                 "johaliman@csu.fullerton.edu" to Pair("johanliman", Triple("Johan", "Student", Pair(33.8802, -117.8858))),
+                "johanliman@csu.fullerton.edu" to Pair("johanliman", Triple("Johan", "Student", Pair(33.8802, -117.8858))),
+                "johan.liman@csu.fullerton.edu" to Pair("johanliman", Triple("Johan", "Student", Pair(33.8802, -117.8858))),
                 "d.wu@csu.fullerton.edu" to Pair("danielwu", Triple("Daniel", "Student", Pair(33.8813, -117.8854))),
+                "daniel.wu@csu.fullerton.edu" to Pair("danielwu", Triple("Daniel", "Student", Pair(33.8813, -117.8854))),
                 "yu-cheng.chang@csu.fullerton.edu" to Pair("yuchengchang", Triple("Yu", "Student", Pair(33.8820, -117.8885))),
                 "jchen102951@csu.fullerton.edu" to Pair("jiechen", Triple("Jie", "Student", Pair(33.8829, -117.8828))),
-                "siling313@csu.fullerton.edu" to Pair("siling", Triple("Siling", "Student", Pair(33.8835, -117.8870))),
-                "johan.liman@csu.fullerton.edu" to Pair("johanliman", Triple("Johan", "Student", Pair(33.8802, -117.8858))),
-                "daniel.wu@csu.fullerton.edu" to Pair("danielwu", Triple("Daniel", "Student", Pair(33.8813, -117.8854)))
+                "siling313@csu.fullerton.edu" to Pair("siling", Triple("Siling", "Student", Pair(33.8835, -117.8870)))
             )
             val match = seedCredentials[normalized]
             if (match != null && match.first == trimmedPw) {
@@ -92,8 +134,9 @@ class SafePathApiClient(private val baseUrl: String = DEFAULT_BASE_URL) {
                     email = normalized,
                     name = data.first,
                     role = data.second,
-                    latitude = data.third.first,
-                    longitude = data.third.second,
+                    latitude = latitude ?: data.third.first,
+                    longitude = longitude ?: data.third.second,
+                    locationName = if (latitude != null && longitude != null) "Detected Device Location" else "Campus",
                     message = "Authenticated successfully"
                 )
             }
