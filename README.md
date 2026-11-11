@@ -1,25 +1,24 @@
-# SafePath: Emergency Alert & Safe Route Navigation System
-### CPSC 515 Mobile Computing — Comprehensive Group Project
+# SafePath
 
-**Project Team:**
-- **Daniel Wu**
-- **Johan Liman**
-- **Jie Chen**
-- **Yu-Cheng Chang**
-- **Siling Liu**
+Project Team:
+- Daniel Wu
+- Johan Liman
+- Jie Chen
+- Yu-Cheng Chang
+- Siling Liu
 
 ---
 
 ## 🚀 Quick Start: Live Web Application Demo
 
-The full live web application is running locally at **`http://localhost:3000`** with zero external dependencies.
+The full live web application is hosted online at **[https://safepath-live.onrender.com](https://safepath-live.onrender.com/)** (and can also run locally at `http://localhost:3000`).
 
-| Interface | URL | Description |
-| :--- | :--- | :--- |
-| **⚡ Split Live Demo** | [http://localhost:3000/demo.html](http://localhost:3000/demo.html) | **Recommended for presentation:** Side-by-side view with Admin EOC on the Left and Student Mobile Device on the Right! |
-| **🛡️ Admin Operations Center** | [http://localhost:3000/admin.html](http://localhost:3000/admin.html) | Dispatch emergency alerts (12 types), configure Lat/Lng & radius, monitor student fleet. |
-| **📱 Student Mobile App** | [http://localhost:3000/user.html](http://localhost:3000/user.html) | Google Email login, live map, drag pin/teleport, walking simulation, audio siren, safe route A*. |
-| **🏠 Portal Homepage** | [http://localhost:3000/](http://localhost:3000/) | System overview, team member responsibilities, and documentation links. |
+| Interface | Cloud Live URL | Local URL | Description |
+| :--- | :--- | :--- | :--- |
+| **⚡ Split Live Demo** | [https://safepath-live.onrender.com/demo.html](https://safepath-live.onrender.com/demo.html) | [http://localhost:3000/demo.html](http://localhost:3000/demo.html) | **Recommended for presentation:** Side-by-side view with Admin EOC on the Left and Student Mobile Device on the Right! |
+| **🛡️ Admin Operations Center** | [https://safepath-live.onrender.com/admin.html](https://safepath-live.onrender.com/admin.html) | [http://localhost:3000/admin.html](http://localhost:3000/admin.html) | Dispatch emergency alerts (12 types), configure Lat/Lng & radius, monitor student fleet. |
+| **📱 Student Mobile App** | [https://safepath-live.onrender.com/user.html](https://safepath-live.onrender.com/user.html) | [http://localhost:3000/user.html](http://localhost:3000/user.html) | Google Email Registration and Auth, live map, drag pin/teleport, walking simulation, audio siren, safe route A*. |
+| **🏠 Portal Homepage** | [https://safepath-live.onrender.com/](https://safepath-live.onrender.com/) | [http://localhost:3000/](http://localhost:3000/) | System overview and application portal. |
 
 To restart the server at any time:
 ```bash
@@ -52,7 +51,7 @@ Full operational safety profiles for all 12 disaster categories:
   - Live Student Fleet Map: Real-time visual tracking of connected students, their safety status (`SAFE` vs `IN HAZARD`), battery %, and network status.
   - Active Alerts Management with instant resolution / cancellation.
 - **Student Panel:**
-  - Google Email Registration & Auth (`daniel.wu@csu.fullerton.edu`, etc.).
+  - Google Email Registration and Auth
   - **Location Changing & Relocation:**
     - Drag user marker anywhere on campus.
     - Click anywhere on the map to relocate.
@@ -96,9 +95,3 @@ The native Android project is located under `android/`:
   1. Open Android Studio.
   2. Select **Open** and choose `/Users/dv/Desktop/SafePathKotlin/android`.
   3. Sync Gradle and run on Android Emulator or connected physical device.
-
----
-
-## 📚 Deliverables & Documentation
-
-- [Experimental Results Report](docs/CPSC515_SafePath_Experimental_Results.md): Quantitative data answering all research questions (GPS accuracy, latency, battery, user mobility).

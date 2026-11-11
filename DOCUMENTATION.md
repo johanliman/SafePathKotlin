@@ -171,9 +171,6 @@ SafePathKotlin/
 │   └── src/main/kotlin/edu/cpsc515/safepath/server/
 │       ├── service/                    # EmergencyGeofenceEngine & SafeRoutePathfinder
 │       └── model/                      # DomainModels (Alerts, Nodes, Edges)
-│
-└── docs/                               # Academic Reports & Evaluation Data
-    └── CPSC515_SafePath_Experimental_Results.md
 ```
 
 ---
