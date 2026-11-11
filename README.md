@@ -1,14 +1,5 @@
 # SafePath
 
-Project Team:
-- Daniel Wu
-- Johan Liman
-- Jie Chen
-- Yu-Cheng Chang
-- Siling Liu
-
----
-
 ## 🚀 Quick Start: Live Web Application Demo
 
 The full live web application is hosted online at **[https://safepath-live.onrender.com](https://safepath-live.onrender.com/)** (and can also run locally at `http://localhost:3000`).
