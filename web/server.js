@@ -298,12 +298,19 @@ function seedUser(email, password, name, role, lat, lng, isSimulated = false) {
 // 1. Admin
 seedUser("admin@safepath.com", "admin", "Campus Admin", "Admin", 33.8820, -117.8850, false);
 
-// 2. The 5 Students specified by user (aliases resolve via resolveCanonicalEmail)
-seedUser("johaliman@csu.fullerton.edu", "johanliman", "Johan", "Student", 33.8802, -117.8858);
-seedUser("d.wu@csu.fullerton.edu", "danielwu", "Daniel", "Student", 33.8813, -117.8854);
-seedUser("yu-cheng.chang@csu.fullerton.edu", "yuchengchang", "Yu", "Student", 33.8820, -117.8885);
-seedUser("jchen102951@csu.fullerton.edu", "jiechen", "Jie", "Student", 33.8829, -117.8828);
-seedUser("siling313@csu.fullerton.edu", "siling", "Siling", "Student", 33.8835, -117.8870);
+// 2. The 5 Students specified by user (all positioned around Cal State Fullerton)
+const DEFAULT_STUDENTS = [
+  { email: "johaliman@csu.fullerton.edu", password: "johanliman", name: "Johan", lat: 33.8802, lng: -117.8858 },
+  { email: "d.wu@csu.fullerton.edu", password: "danielwu", name: "Daniel", lat: 33.8813, lng: -117.8854 },
+  { email: "yu-cheng.chang@csu.fullerton.edu", password: "yuchengchang", name: "Yu", lat: 33.8820, lng: -117.8885 },
+  { email: "jchen102951@csu.fullerton.edu", password: "jiechen", name: "Jie", lat: 33.8829, lng: -117.8828 },
+  { email: "siling313@csu.fullerton.edu", password: "siling", name: "Siling", lat: 33.8835, lng: -117.8870 }
+];
+const DEFAULT_STUDENT_MAP = new Map(DEFAULT_STUDENTS.map(ds => [ds.email, ds]));
+
+for (const ds of DEFAULT_STUDENTS) {
+  seedUser(ds.email, ds.password, ds.name, "Student", ds.lat, ds.lng);
+}
 
 // SSE Subscribers (Real-time alert dispatch to web browsers & mobile clients)
 const sseClients = new Set();
@@ -578,44 +585,30 @@ const server = http.createServer(async (req, res) => {
       }
 
       const now = Date.now();
-      const clientLat = (data.latitude !== undefined && data.latitude !== null && data.latitude !== '') ? parseFloat(data.latitude) : null;
-      const clientLng = (data.longitude !== undefined && data.longitude !== null && data.longitude !== '') ? parseFloat(data.longitude) : null;
-      const isClientMock = Boolean(data.isMock || data.isSimulated);
-      const mockSource = data.mockSource || null;
-      const accuracy = data.accuracy ? parseFloat(data.accuracy) : 4.5;
+      const seededStudent = DEFAULT_STUDENT_MAP.get(email);
+      const lat = seededStudent ? seededStudent.lat : user.latitude;
+      const lng = seededStudent ? seededStudent.lng : user.longitude;
+      const accuracy = 4.5;
 
-      // Determine login location (Real detected coordinates or current user coordinates)
-      const lat = clientLat !== null ? clientLat : user.latitude;
-      const lng = clientLng !== null ? clientLng : user.longitude;
+      const locationAnalysis = analyzeLocationChange(user, lat, lng, false, null, accuracy);
 
-      // Reverse geocode real location if outside campus
-      if (clientLat !== null && clientLng !== null) {
-        await reverseGeocodeOffCampus(lat, lng);
-      }
-
-      // Run algorithm: check last login location vs new detected location & detect mock/teleport
-      const locationAnalysis = analyzeLocationChange(user, lat, lng, isClientMock, mockSource, accuracy);
-
-      // Preserve previous location as lastLoginLocation before updating to current
-      if (!user.lastLoginLocation) {
-        user.lastLoginLocation = {
-          latitude: user.latitude,
-          longitude: user.longitude,
-          timestamp: user.lastPing || (now - 3600000 * 2),
-          locationName: resolveLocationName(user.latitude, user.longitude),
-          isMock: Boolean(user.isMockLocation)
-        };
-      }
-
-      // Update user current coordinates and state
+      // Update user coordinates to their CSU Fullerton campus location without device GPS override
       user.lastPing = now;
       user.latitude = lat;
       user.longitude = lng;
       user.accuracy = accuracy;
-      user.locationName = locationAnalysis.currentLocation.locationName;
-      user.isMockLocation = locationAnalysis.isMockLocation;
-      user.mockSource = locationAnalysis.mockSource;
-      user.mockReason = locationAnalysis.mockReason;
+      user.locationName = resolveLocationName(lat, lng);
+      user.isMockLocation = false;
+      user.mockSource = null;
+      user.mockReason = null;
+      user.lastLoginLocation = {
+        latitude: lat,
+        longitude: lng,
+        timestamp: now,
+        locationName: user.locationName,
+        isMock: false
+      };
+      user.distanceFromLastLoginMeters = 0;
       user.lastLoginAnalysis = locationAnalysis;
 
       if (!user.loginHistory) user.loginHistory = [];
@@ -624,10 +617,10 @@ const server = http.createServer(async (req, res) => {
         latitude: lat,
         longitude: lng,
         locationName: user.locationName,
-        isMock: user.isMockLocation,
-        distanceMovedMeters: locationAnalysis.distanceFromLastLoginMeters,
-        speedMps: locationAnalysis.speedMps,
-        status: locationAnalysis.status
+        isMock: false,
+        distanceMovedMeters: 0,
+        speedMps: 0,
+        status: 'CAMPUS_DEFAULT'
       });
       if (user.loginHistory.length > 20) user.loginHistory.pop();
 
@@ -995,22 +988,14 @@ const server = http.createServer(async (req, res) => {
 
   // 6b. POST /api/users/reset (Reset fleet back to realistic campus building locations)
   if (method === 'POST' && pathname === '/api/users/reset') {
-    const defaultStudents = [
-      { email: "johaliman@csu.fullerton.edu", name: "Johan", lat: 33.8802, lng: -117.8858 },
-      { email: "d.wu@csu.fullerton.edu", name: "Daniel", lat: 33.8813, lng: -117.8854 },
-      { email: "yu-cheng.chang@csu.fullerton.edu", name: "Yu", lat: 33.8820, lng: -117.8885 },
-      { email: "jchen102951@csu.fullerton.edu", name: "Jie", lat: 33.8829, lng: -117.8828 },
-      { email: "siling313@csu.fullerton.edu", name: "Siling", lat: 33.8835, lng: -117.8870 }
-    ];
-    const defaultMap = new Map(defaultStudents.map(ds => [ds.email, ds]));
-    for (const ds of defaultStudents) {
+    for (const ds of DEFAULT_STUDENTS) {
       if (!registeredUsers.has(ds.email)) {
-        seedUser(ds.email, "studentpass", ds.name, "Student", ds.lat, ds.lng);
+        seedUser(ds.email, ds.password, ds.name, "Student", ds.lat, ds.lng);
       }
     }
 
     for (const user of getUniqueStudentUsers()) {
-      const init = defaultMap.get(user.email);
+      const init = DEFAULT_STUDENT_MAP.get(user.email);
       if (init) {
         user.latitude = init.lat;
         user.longitude = init.lng;

@@ -86,7 +86,6 @@ class LoginActivity : AppCompatActivity() {
         setupTabs()
         setupQuickLogins()
         setupActions()
-        fetchDeviceLocation()
     }
 
     private fun initViews() {
@@ -216,25 +215,15 @@ class LoginActivity : AppCompatActivity() {
         showLoading(true)
         hideStatus()
 
-        // Fetch fresh location before sending login payload
-        fetchDeviceLocation {
-            lifecycleScope.launch {
-                val result = apiClient.login(email, pass, capturedLat, capturedLng, isLocationMocked)
-                showLoading(false)
+        lifecycleScope.launch {
+            val result = apiClient.login(email, pass)
+            showLoading(false)
 
-                if (result.success) {
-                    var welcomeMsg = "Welcome, ${result.name}! Verified at ${result.locationName.ifEmpty { "Campus" }}."
-                    if (result.lastLoginLocationName.isNotEmpty()) {
-                        welcomeMsg += " Last login: ${result.lastLoginLocationName} (${result.distanceFromLastLoginMeters}m away)."
-                    }
-                    if (result.isMockLocation) {
-                        welcomeMsg += " [⚠️ Mock Location Active]"
-                    }
-                    showStatus(welcomeMsg, isError = false)
-                    navigateToMain(result.role, result.email, result.name, result.latitude, result.longitude)
-                } else {
-                    showStatus(result.message.ifEmpty { "Invalid credentials. Please try again." }, isError = true)
-                }
+            if (result.success) {
+                showStatus("Welcome, ${result.name}! Launching SafePath...", isError = false)
+                navigateToMain(result.role, result.email, result.name, result.latitude, result.longitude)
+            } else {
+                showStatus(result.message.ifEmpty { "Invalid credentials. Please try again." }, isError = true)
             }
         }
     }

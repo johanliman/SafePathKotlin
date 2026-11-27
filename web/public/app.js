@@ -72,10 +72,6 @@ class SafePathEngine {
     // Initial state check
     this.renderAllStudentsOnMap();
     this.computeSafeRoute();
-
-    if (this.role === 'user') {
-      this.initUserLocationState();
-    }
   }
 
   async syncFleetFromServer() {
@@ -735,20 +731,6 @@ class SafePathEngine {
     };
 
     this.updateLocationWidgets(initialData);
-
-    // If live browser GPS is available and not in mock state, verify and center on real location
-    if (navigator.geolocation && !initialData.isMockLocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          this.setUserLocation(pos.coords.latitude, pos.coords.longitude, undefined, undefined, undefined, false, 'Browser GPS');
-          if (this.map) {
-            this.map.setView([pos.coords.latitude, pos.coords.longitude], 16);
-          }
-        },
-        () => {},
-        { enableHighAccuracy: true, timeout: 6000, maximumAge: 10000 }
-      );
-    }
   }
 
   updateLocationWidgets(data) {
