@@ -220,6 +220,40 @@ function analyzeLocationChange(user, newLat, newLng, isClientMock = false, mockS
 // Connected / Registered Users Store with Pre-seeded Accounts
 let registeredUsers = new Map();
 
+const EMAIL_ALIASES = {
+  'johan.liman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
+  'johanliman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
+  'johanliman': 'johaliman@csu.fullerton.edu',
+  'daniel.wu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
+  'danielwu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
+  'jie.chen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
+  'jiechen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
+  'yucheng.chang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
+  'yuchengchang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
+  'yu.chang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
+  'siling.liu@csu.fullerton.edu': 'siling313@csu.fullerton.edu',
+  'silingliu@csu.fullerton.edu': 'siling313@csu.fullerton.edu'
+};
+
+/** Resolve known student email aliases to their canonical account email. */
+function resolveCanonicalEmail(rawEmail) {
+  const normalized = (rawEmail || '').trim().toLowerCase();
+  return EMAIL_ALIASES[normalized] || normalized;
+}
+
+/** Return unique non-admin student records stored in registeredUsers. */
+function getUniqueStudentUsers() {
+  const seenEmails = new Set();
+  const students = [];
+  for (const user of registeredUsers.values()) {
+    if (user.role === 'Admin' || user.email === 'admin@safepath.com') continue;
+    if (seenEmails.has(user.email)) continue;
+    seenEmails.add(user.email);
+    students.push(user);
+  }
+  return students;
+}
+
 function seedUser(email, password, name, role, lat, lng, isSimulated = false) {
   const normEmail = email.trim().toLowerCase();
   const locName = resolveLocationName(lat, lng);
@@ -264,18 +298,12 @@ function seedUser(email, password, name, role, lat, lng, isSimulated = false) {
 // 1. Admin
 seedUser("admin@safepath.com", "admin", "Campus Admin", "Admin", 33.8820, -117.8850, false);
 
-// 2. The 5 Students specified by user
+// 2. The 5 Students specified by user (aliases resolve via resolveCanonicalEmail)
 seedUser("johaliman@csu.fullerton.edu", "johanliman", "Johan", "Student", 33.8802, -117.8858);
-const johanUserRef = registeredUsers.get("johaliman@csu.fullerton.edu");
-registeredUsers.set("johanliman@csu.fullerton.edu", johanUserRef);
-registeredUsers.set("johan.liman@csu.fullerton.edu", johanUserRef);
 seedUser("d.wu@csu.fullerton.edu", "danielwu", "Daniel", "Student", 33.8813, -117.8854);
-registeredUsers.set("daniel.wu@csu.fullerton.edu", registeredUsers.get("d.wu@csu.fullerton.edu"));
 seedUser("yu-cheng.chang@csu.fullerton.edu", "yuchengchang", "Yu", "Student", 33.8820, -117.8885);
 seedUser("jchen102951@csu.fullerton.edu", "jiechen", "Jie", "Student", 33.8829, -117.8828);
-registeredUsers.set("jie.chen@csu.fullerton.edu", registeredUsers.get("jchen102951@csu.fullerton.edu"));
 seedUser("siling313@csu.fullerton.edu", "siling", "Siling", "Student", 33.8835, -117.8870);
-registeredUsers.set("siling.liu@csu.fullerton.edu", registeredUsers.get("siling313@csu.fullerton.edu"));
 
 // SSE Subscribers (Real-time alert dispatch to web browsers & mobile clients)
 const sseClients = new Set();
@@ -357,7 +385,7 @@ const server = http.createServer(async (req, res) => {
     // Initial sync
     res.write(`event: init\ndata: ${JSON.stringify({
       activeAlerts,
-      userCount: registeredUsers.size,
+      userCount: getUniqueStudentUsers().length,
       serverTime: Date.now()
     })}\n\n`);
 
@@ -431,12 +459,10 @@ const server = http.createServer(async (req, res) => {
       activeAlerts.unshift(newAlert);
       alertHistory.unshift(newAlert);
 
-      // Evaluate proximity for all registered student users (Admin is the dispatcher, not a student recipient)
+      // Evaluate proximity for all unique registered student users (Admin is the dispatcher, not a student recipient)
       const affectedUsers = [];
-      const studentRecipients = [];
-      for (const [email, user] of registeredUsers.entries()) {
-        if (user.role === 'Admin' || user.email === 'admin@safepath.com') continue;
-        studentRecipients.push(user);
+      const studentRecipients = getUniqueStudentUsers();
+      for (const user of studentRecipients) {
         const dist = getDistanceMeters(user.latitude, user.longitude, newAlert.latitude, newAlert.longitude);
         if (dist <= newAlert.radiusMeters) {
           user.status = 'IN HAZARD';
@@ -529,23 +555,8 @@ const server = http.createServer(async (req, res) => {
   if (method === 'POST' && pathname === '/api/auth/login') {
     try {
       const data = await parseBody(req);
-      const rawEmail = (data.email || '').trim().toLowerCase();
+      const email = resolveCanonicalEmail(data.email);
       const password = (data.password || '').trim();
-
-      const emailAliases = {
-        'johan.liman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
-        'johanliman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
-        'johanliman': 'johaliman@csu.fullerton.edu',
-        'daniel.wu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
-        'danielwu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
-        'jie.chen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
-        'jiechen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
-        'yucheng.chang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
-        'yuchengchang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
-        'siling.liu@csu.fullerton.edu': 'siling313@csu.fullerton.edu',
-        'silingliu@csu.fullerton.edu': 'siling313@csu.fullerton.edu'
-      };
-      const email = emailAliases[rawEmail] || rawEmail;
 
       if (!email || !password) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -671,7 +682,7 @@ const server = http.createServer(async (req, res) => {
   if (method === 'POST' && pathname === '/api/auth/register') {
     try {
       const data = await parseBody(req);
-      const email = (data.email || '').trim().toLowerCase();
+      const email = resolveCanonicalEmail(data.email);
       const password = (data.password || '').trim();
       const name = (data.name || '').trim();
 
@@ -758,7 +769,7 @@ const server = http.createServer(async (req, res) => {
   if (method === 'POST' && pathname === '/api/auth/google') {
     try {
       const data = await parseBody(req);
-      const email = (data.email || '').trim().toLowerCase();
+      const email = resolveCanonicalEmail(data.email);
       if (!email || !email.includes('@')) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'A valid Google email address is required (e.g. user@gmail.com or student@csu.fullerton.edu)' }));
@@ -816,21 +827,7 @@ const server = http.createServer(async (req, res) => {
   if (method === 'POST' && pathname === '/api/users/location') {
     try {
       const data = await parseBody(req);
-      const rawEmail = (data.email || '').trim().toLowerCase();
-      const emailAliases = {
-        'johan.liman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
-        'johanliman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
-        'johanliman': 'johaliman@csu.fullerton.edu',
-        'daniel.wu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
-        'danielwu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
-        'jie.chen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
-        'jiechen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
-        'yucheng.chang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
-        'yuchengchang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
-        'siling.liu@csu.fullerton.edu': 'siling313@csu.fullerton.edu',
-        'silingliu@csu.fullerton.edu': 'siling313@csu.fullerton.edu'
-      };
-      const email = emailAliases[rawEmail] || rawEmail;
+      const email = resolveCanonicalEmail(data.email);
       if (!email) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'User email is required' }));
@@ -998,18 +995,6 @@ const server = http.createServer(async (req, res) => {
 
   // 6b. POST /api/users/reset (Reset fleet back to realistic campus building locations)
   if (method === 'POST' && pathname === '/api/users/reset') {
-    const initialCoords = {
-      'daniel.wu@csu.fullerton.edu': { lat: 33.8813, lng: -117.8854, name: 'Daniel' },
-      'd.wu@csu.fullerton.edu': { lat: 33.8813, lng: -117.8854, name: 'Daniel' },
-      'johan.liman@csu.fullerton.edu': { lat: 33.8802, lng: -117.8858, name: 'Johan' },
-      'johaliman@csu.fullerton.edu': { lat: 33.8802, lng: -117.8858, name: 'Johan' },
-      'jie.chen@csu.fullerton.edu': { lat: 33.8829, lng: -117.8828, name: 'Jie' },
-      'jchen102951@csu.fullerton.edu': { lat: 33.8829, lng: -117.8828, name: 'Jie' },
-      'yucheng.chang@csu.fullerton.edu': { lat: 33.8820, lng: -117.8885, name: 'Yu' },
-      'yu-cheng.chang@csu.fullerton.edu': { lat: 33.8820, lng: -117.8885, name: 'Yu' },
-      'siling.liu@csu.fullerton.edu': { lat: 33.8835, lng: -117.8870, name: 'Siling' },
-      'siling313@csu.fullerton.edu': { lat: 33.8835, lng: -117.8870, name: 'Siling' }
-    };
     const defaultStudents = [
       { email: "johaliman@csu.fullerton.edu", name: "Johan", lat: 33.8802, lng: -117.8858 },
       { email: "d.wu@csu.fullerton.edu", name: "Daniel", lat: 33.8813, lng: -117.8854 },
@@ -1017,14 +1002,15 @@ const server = http.createServer(async (req, res) => {
       { email: "jchen102951@csu.fullerton.edu", name: "Jie", lat: 33.8829, lng: -117.8828 },
       { email: "siling313@csu.fullerton.edu", name: "Siling", lat: 33.8835, lng: -117.8870 }
     ];
+    const defaultMap = new Map(defaultStudents.map(ds => [ds.email, ds]));
     for (const ds of defaultStudents) {
       if (!registeredUsers.has(ds.email)) {
         seedUser(ds.email, "studentpass", ds.name, "Student", ds.lat, ds.lng);
       }
     }
 
-    for (const [email, user] of registeredUsers.entries()) {
-      const init = initialCoords[email];
+    for (const user of getUniqueStudentUsers()) {
+      const init = defaultMap.get(user.email);
       if (init) {
         user.latitude = init.lat;
         user.longitude = init.lng;
@@ -1068,16 +1054,11 @@ const server = http.createServer(async (req, res) => {
 
   // 7. GET Users (For Admin Fleet Display) - returns registered students, hides Admin and strips passwords
   if (method === 'GET' && pathname === '/api/users') {
-    const seenEmails = new Set();
-    const list = [];
-    for (const user of registeredUsers.values()) {
-      if (user.role === 'Admin' || user.email === 'admin@safepath.com') continue;
-      if (seenEmails.has(user.email)) continue;
-      seenEmails.add(user.email);
+    const list = getUniqueStudentUsers().map(user => {
       const safe = { ...user };
       delete safe.password;
-      list.push(safe);
-    }
+      return safe;
+    });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       totalUsers: list.length,
@@ -1090,36 +1071,27 @@ const server = http.createServer(async (req, res) => {
   if ((method === 'DELETE' && (pathname === '/api/users' || pathname.startsWith('/api/users/'))) ||
       (method === 'POST' && pathname === '/api/users/delete')) {
     try {
-      let emailToDelete = '';
-      if (pathname.startsWith('/api/users/')) {
-        emailToDelete = decodeURIComponent(pathname.substring('/api/users/'.length)).trim().toLowerCase();
+      let rawEmailToDelete = '';
+      if (method === 'DELETE' && pathname.startsWith('/api/users/')) {
+        rawEmailToDelete = decodeURIComponent(pathname.substring('/api/users/'.length));
       }
-      if (!emailToDelete) {
+      if (!rawEmailToDelete) {
         const data = await parseBody(req);
-        emailToDelete = (data.email || '').trim().toLowerCase();
+        rawEmailToDelete = data.email || '';
       }
+      const emailToDelete = resolveCanonicalEmail(rawEmailToDelete);
       if (!emailToDelete) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Email is required to delete user' }));
         return;
       }
 
-      const emailAliases = {
-        'daniel.wu@csu.fullerton.edu': 'd.wu@csu.fullerton.edu',
-        'd.wu@csu.fullerton.edu': 'daniel.wu@csu.fullerton.edu',
-        'johan.liman@csu.fullerton.edu': 'johaliman@csu.fullerton.edu',
-        'johaliman@csu.fullerton.edu': 'johan.liman@csu.fullerton.edu',
-        'jie.chen@csu.fullerton.edu': 'jchen102951@csu.fullerton.edu',
-        'jchen102951@csu.fullerton.edu': 'jie.chen@csu.fullerton.edu',
-        'yu.chang@csu.fullerton.edu': 'yu-cheng.chang@csu.fullerton.edu',
-        'yu-cheng.chang@csu.fullerton.edu': 'yu.chang@csu.fullerton.edu',
-        'siling313@csu.fullerton.edu': 'siling.liu@csu.fullerton.edu',
-        'siling.liu@csu.fullerton.edu': 'siling313@csu.fullerton.edu'
-      };
-
       const deleted = registeredUsers.delete(emailToDelete);
-      const alias = emailAliases[emailToDelete];
-      if (alias) registeredUsers.delete(alias);
+      for (const [alias, canonical] of Object.entries(EMAIL_ALIASES)) {
+        if (canonical === emailToDelete) {
+          registeredUsers.delete(alias);
+        }
+      }
 
       broadcastSSE('USER_DELETED', { email: emailToDelete });
 
@@ -1134,9 +1106,7 @@ const server = http.createServer(async (req, res) => {
 
   // 8. GET Research Metrics & Performance Telemetry
   if (method === 'GET' && pathname === '/api/metrics') {
-    const studentCount = Array.from(registeredUsers.values()).filter(
-      u => u.role !== 'Admin' && u.email !== 'admin@safepath.com'
-    ).length;
+    const studentCount = getUniqueStudentUsers().length;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       activeConnections: sseClients.size,
